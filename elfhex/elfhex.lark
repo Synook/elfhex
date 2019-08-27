@@ -1,0 +1,60 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+program: include* (segment | fragment)*
+
+include: "include" fragments_only? filename
+!fragments_only: "fragments"
+filename: STRING
+
+fragment: "fragment" NAME "(" fragment_params ")" "{" token* "}"
+fragment_params: (NAME ("," NAME)*)?
+
+segment: "segment" NAME "(" segment_args ")" "{" token* "}"
+segment_args: segment_arg*
+segment_arg: "flags" ":" /rw?x?/ -> segment_flags
+             | "align" ":" POWER_OF_TWO -> segment_align
+             | "size" ":" INT -> segment_size
+
+?token: HEX -> hex | number | STRING -> string | label | abs | rel | fragment_ref | fragment_var
+
+fragment_var: "$" NAME
+
+fragment_ref: fragment_start NAME fragment_args ( "(" NAME ")" )?
+!fragment_start: "@" "!"?
+fragment_args: "(" (fragment_arg ("," fragment_arg)*)? ")"
+fragment_arg: token*
+
+!number: ("+" | "-" | "=") (/[0-9a-fA-F]+h(2|4|8)?/ | /[01]+b(2|4|8)?/ | /[0-9]+d(2|4|8)?/)
+
+label: "[" NAME "]"
+
+abs: "<<" abs_label label_offset? ">>"
+abs_label: (NAME ":")? NAME
+!label_offset: ("+" | "-") INT
+
+rel: "<" NAME (":" POWER_OF_TWO)? ">"
+
+NAME: /[a-z_][a-z0-9_.]*/i
+HEX: /[0-9a-f]{2}/i
+COMMENT: /#.*?\n/
+POWER_OF_TWO: "4096" | "64" | "32" | "16" | "8" | "4" | "2" | "1"
+
+%import common.HEXDIGIT
+%import common.SIGNED_INT
+%import common.INT
+%import common.ESCAPED_STRING -> STRING
+%import common.WS
+%ignore WS
+%ignore COMMENT
