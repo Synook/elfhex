@@ -16,7 +16,7 @@
 
 import struct
 from lark import Transformer
-from .program import Program, Segment, Label, AbsoluteReference, RelativeReference, Byte
+from .program import Program, Segment, Label, AbsoluteReference, RelativeReference, Byte, AutoLabel
 from .util import WIDTH_SYMBOLS, defaults, ElfhexError
 
 
@@ -28,7 +28,17 @@ class Elfhex(Transformer):
         return Program(items, self.args)
 
     def segment(self, items):
-        return Segment(items[0], items[1], items[2:], self.args)
+        return Segment(self.args, *items)
+
+    def segment_content(self, items):
+        return items
+
+    def auto_labels(self, items):
+        return items
+
+    def auto_label(self, items):
+        name, width = items
+        return AutoLabel(name, int(width))
 
     def segment_args(self, items):
         args = {}

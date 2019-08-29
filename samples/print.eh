@@ -28,8 +28,8 @@ segment text(flags: rx) {
   @common_exit()
 }
 
-segment data(flags: rw size: 4) {
-  [counter]
+segment data(flags: rw) {
+  [[counter: 4]]
 }
 
 segment strings(flags: r) {

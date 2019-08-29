@@ -29,11 +29,12 @@ segment segment_name(flags: rx) {
   1e e7 =10d4 "string" # bytes, numbers, and strings
   [label] <label:4> <<label + 4>> # labels and references
   @fragment_name(aa, <label>) # fragment references
+  [[auto_label: 4 auto_label2: 1024]] # auto labels
 }
 
 fragment fragment_name(arg1, arg2) {
   $arg1 # fragment parameter references
-  ab cd # otherwise, the same content as segments
+  ab cd # otherwise, the same content as segments except for auto labels
 }
 ```
 
@@ -92,6 +93,22 @@ In both cases, the reference is replaced with the appropriate byte sequence at c
 ### Fragment references
 
 As [described above](#fragments), the contents of fragments can be inserted into the source by referencing them with the `@` symbol, for example, a fragment with name `fragment_name` would be referenced with `@fragment_name()`.
+
+### Auto labels
+
+At the end of segments (but not fragments), a list of "auto labels" can be defined. All labels in the list are placed between a single pair of double square brackets, for example, `[[label1: 4 label2: 8]]`.
+
+Each auto label comprises a name, along with a width. These labels do not point to contents in the file image, and refer to a memory location in the segment after the file contents. The width defines the number of bytes between the location of the label and the next artifact (other auto label) in the memory layout. The memory size of the segment will be adjusted accordingly to accommodate all the defined auto labels.
+
+For example, consider a segment defined as:
+
+```
+segment test() { ab cd [[label: 4 label2: 8]] }
+```
+
+The file size of this segment would be 2, but the memory size would be 14 (2 + 4 + 8). If the beginning offset of the segment was byte 1000, then `label` would refer to offset 1002, and `label2` to offset 1006. These labels can then be refered to as usual.
+
+Auto labels can only appear at the end of a segment, so that they are not assigned over segment content. When segments are merged during the file inclusion process, the auto label lists are also concatenated to each other.
 
 ### Comments
 

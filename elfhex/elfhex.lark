@@ -21,11 +21,14 @@ filename: STRING
 fragment: "fragment" NAME "(" fragment_params ")" "{" token* "}"
 fragment_params: (NAME ("," NAME)*)?
 
-segment: "segment" NAME "(" segment_args ")" "{" token* "}"
+segment: "segment" NAME "(" segment_args ")" "{" segment_content auto_labels "}"
+segment_content: token*
 segment_args: segment_arg*
 segment_arg: "flags" ":" /rw?x?/ -> segment_flags
              | "align" ":" POWER_OF_TWO -> segment_align
              | "size" ":" INT -> segment_size
+auto_labels: ("[[" auto_label* "]]")?
+auto_label: NAME ":" INT
 
 ?token: HEX -> hex | number | STRING -> string | label | abs | rel | fragment_ref | fragment_var
 

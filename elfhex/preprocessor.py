@@ -88,9 +88,12 @@ class Preprocessor:
             if fragments_only:
                 continue
             for segment in program.find_data('segment'):
-                name, _, contents = segment.children
+                name, _, contents, auto_labels = segment.children
                 if name in segments:
-                    segments[name].children.extend(contents)
+                    next(segments[name].find_data(
+                        'segment_content')).children.extend(contents.children)
+                    next(segments[name].find_data(
+                        'auto_labels')).children.extend(auto_labels.children)
                 else:
                     canonical.children.append(segment)
                     segments[name] = segment
@@ -144,12 +147,12 @@ class Preprocessor:
         ref_num = 0
         for segment in parsed.find_data('segment'):
             new_children = []
-            for child in segment.children[2:]:
+            for child in segment.children[2].children:
                 if child.data == 'fragment_ref':
                     new_children.extend(self._process_fragment_ref(
                         child.children, fragments, ref_num, seen))
                     ref_num += 1
                 else:
                     new_children.append(child)
-            segment.children[2:] = new_children
+            segment.children[2].children = new_children
         return ref_num > 0

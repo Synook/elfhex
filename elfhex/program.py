@@ -79,12 +79,12 @@ class Program:
 
 
 class Segment:
-    def __init__(self, name, args, contents, program_args):
+    def __init__(self, program_args, name, args, contents, auto_labels):
         self.name = name
         self.args = args
         if not 'segment_align' in args:
             args['segment_align'] = program_args.default_align
-        self._process_labels(contents)
+        self._process_labels(contents, auto_labels)
 
     def get_name(self):
         return self.name
@@ -103,17 +103,13 @@ class Segment:
     def get_align(self):
         return self.args.get('segment_align')
 
-    def _process_labels(self, contents):
+    def _process_labels(self, contents, auto_labels):
         self.contents = []
         self.labels = {}
         self.size = 0
         for element in contents:
             if type(element) == Label:
-                if element.name in self.labels:
-                    raise ElfhexError(
-                        f'Label {element.name} defined more than once.')
-                self.labels[element.name] = element
-                element.set_location_in_segment(self.size)
+                self._register_label(element)
             else:
                 if type(element) == RelativeReference:
                     element.set_location_in_segment(self.size)
@@ -125,6 +121,17 @@ class Segment:
                 else:
                     self.size += element.get_size()
                     self.contents.append(element)
+        self.file_size = self.size
+        for label in auto_labels:
+            self._register_label(label)
+            self.size += label.get_width()
+
+    def _register_label(self, label):
+        if label.name in self.labels:
+            raise ElfhexError(
+                f'Label {label.name} defined more than once.')
+        self.labels[label.name] = label
+        label.set_location_in_segment(self.size)
 
     def set_location_in_memory(self, location_in_memory):
         self.location_in_memory = location_in_memory
@@ -144,7 +151,7 @@ class Segment:
         return output
 
     def get_file_size(self):
-        return self.size
+        return self.file_size
 
     def get_size(self):
         return max(self.size, self.args.get('segment_size', 0))
@@ -170,6 +177,15 @@ class Label:
 
     def get_size(self):
         return 0
+
+
+class AutoLabel(Label):
+    def __init__(self, name, width):
+        self.width = width
+        super().__init__(name)
+
+    def get_width(self):
+        return self.width
 
 
 class AbsoluteReference:
