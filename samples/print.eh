@@ -16,7 +16,6 @@ include fragments "common.eh"
 
 segment text(flags: rx) {
   [_start]
-  [_start]
 
   # print hello to stdout
   @common_syscall3(=4d4, =1d4, <<strings:hello>>, =13d4)
