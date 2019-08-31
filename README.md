@@ -6,7 +6,7 @@ ELFHex is a simple "assembler" designed for learning machine code. It takes prog
 
 ## Usage
 
-This project uses `pipenv`. In order to install dependencies, run `pipenv install --dev`. The program can then be run using `python -m elfhex`.
+This project Python 3.6 and `pipenv`. In order to install dependencies, run `pipenv install --dev`. The program can then be run using `python -m elfhex`.
 
 To generate a distributable package, first generate `requirements.txt`, and then use `setuptools` to build the wheel. Installing this package also installs an entry point named `elfhex`.
 
@@ -15,7 +15,7 @@ pipenv lock -r > requirements.txt
 pipenv run python setup.py bdist_wheel
 ```
 
-In general, to run the program needs an input source file and a location for the output executable. There are other options, shown by running `elfhex -h`. Some options include the ability to omit the ELF header in the output, along with changing the default alignment, starting memory address, and entry point label.
+In general, to run the program needs an input source file and a location for the output executable. There are other options, shown by running `elfhex -h`. The target architecture can be specified as a numeric value (corresponding to the `e_machine` field in the ELF header), the default being `3` (Intel 80386 / x86). The endianness can also be changed to big-endian from the default little-endian output. Other options include the ability to omit the ELF header in the output, along with changing the default alignment, starting memory address, and entry point label.
 
 ## Source program overview
 
@@ -143,8 +143,8 @@ segment text(flags: rx) {
   @exit()
 }
 
-segment data(flags: rw size: 4) {
-  [counter]
+segment data(flags: rw) {
+  [[counter: 4]]
 }
 
 segment strings(flags: r) {

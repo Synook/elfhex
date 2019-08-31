@@ -1,4 +1,5 @@
 __pycache__/
+*.pyc
 .vscode/
 *.code-workspace
 *.out

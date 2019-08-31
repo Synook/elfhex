@@ -53,6 +53,13 @@ def parse_args():
     argparser.add_argument(
         '-r', '--no_header', action='store_true',
         help='Do not output the ELF header.')
+    argparser.add_argument(
+        '--big_endian', dest='endianness',
+        action='store_const', const='>', default='<',
+        help='Set the endianness of the output program to big-endian.')
+    argparser.add_argument(
+        '--machine', type=int, default=3,
+        help='The value for e_machine in the ELF header.')
 
     return argparser.parse_args()
 
@@ -83,7 +90,7 @@ def main():
             program.set_segment_positions_in_memory(0)
             output = program.render()
         else:
-            elf = Elf(program)
+            elf = Elf(program, args)
             program.set_segment_positions_in_memory(elf.get_header_size())
             output = elf.render()
 

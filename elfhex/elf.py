@@ -22,8 +22,9 @@ PROGRAM_HEADER_ENTRY_SIZE = 32
 
 
 class Elf:
-    def __init__(self, program):
+    def __init__(self, program, args):
         self.program = program
+        self.args = args
 
     def get_header_size(self):
         return FILE_HEADER_SIZE + PROGRAM_HEADER_ENTRY_SIZE * (len(self.program.get_segments()) + 1)
@@ -35,17 +36,17 @@ class Elf:
         header_size = self.get_header_size()
 
         e_ident = b'\x7fELF' + struct.pack(
-            '<BBBBB',
+            '=BBBBB',
             1,  # ei_class
-            1,  # ei_data
+            2 if self.args.endianness == '>' else 1,  # ei_data
             1,  # ei_version
             0,  # ei_osabi
             0,  # ei_abiversion
         ) + b'\x00' * 7
         file_header = e_ident + struct.pack(
-            '<hhiiiiihhhhhh',
+            f'{self.args.endianness}HHIIIIIHHHHHH',
             0x2,  # e_type = ET_EXEC
-            0x3,  # e_machine = x86
+            self.args.machine,  # e_machine
             1,  # e_version
             self.program.entry_point(),  # e_entry
             FILE_HEADER_SIZE,  # e_phoff
@@ -61,7 +62,7 @@ class Elf:
         )
         program_header_entries = []
         program_header_entries.append(struct.pack(
-            '<iiiiiiii',
+            f'{self.args.endianness}IIIIIIII',
             1,  # p_type = PT_LOAD
             0,  # p_offset
             start,  # p_vaddr
@@ -73,7 +74,7 @@ class Elf:
         ))
         for _, segment in self.program.get_segments():
             program_header_entries.append(struct.pack(
-                '<iiiiiiii',
+                f'{self.args.endianness}IIIIIIII',
                 1,  # p_type = PT_LOAD
                 segment.location_in_file,  # p_offset
                 segment.location_in_memory,  # p_vaddr

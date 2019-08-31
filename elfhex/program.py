@@ -82,6 +82,7 @@ class Segment:
     def __init__(self, program_args, name, args, contents, auto_labels):
         self.name = name
         self.args = args
+        self.endianness = program_args.endianness
         if not 'segment_align' in args:
             args['segment_align'] = program_args.default_align
         self._process_labels(contents, auto_labels)
@@ -143,9 +144,9 @@ class Segment:
         output = b''
         for element in self.contents:
             if type(element) == AbsoluteReference:
-                output += element.render(all_labels)
+                output += element.render(all_labels, self.endianness)
             elif type(element) == RelativeReference:
-                output += element.render(self.labels)
+                output += element.render(self.labels, self.endianness)
             else:
                 output += element.render()
         return output
@@ -201,11 +202,11 @@ class AbsoluteReference:
     def get_size(self):
         return 4
 
-    def render(self, all_labels):
+    def render(self, all_labels, endianness):
         if self.label not in all_labels[self.segment]:
             raise ElfhexError(
                 f'Absolute reference to non-existent label {self.segment}:{self.label}.')
-        return struct.pack('<i', all_labels[self.segment][self.label].absolute_location + self.offset)
+        return struct.pack(f'{endianness}i', all_labels[self.segment][self.label].absolute_location + self.offset)
 
 
 class RelativeReference:
@@ -223,10 +224,10 @@ class RelativeReference:
     def get_location_in_segment(self):
         return self.location_in_segment
 
-    def render(self, labels):
+    def render(self, labels, endianness):
         difference = labels[self.label].get_location_in_segment() - \
             self.location_in_segment - self.get_size()
-        return struct.pack('<' + WIDTH_SYMBOLS[self.get_size()], difference)
+        return struct.pack(f'{endianness}{WIDTH_SYMBOLS[self.get_size()]}', difference)
 
 
 class Byte:

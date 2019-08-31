@@ -84,7 +84,7 @@ class Elfhex(Transformer):
             return [
                 Byte(a)
                 for a in struct.pack(
-                    '<%s' % width_symbol,
+                    f'{self.args.endianness}{width_symbol}',
                     int(number, base) * (-1 if sign == '-' else 1))]
         except struct.error:
             raise ElfhexError('Number too big for specified width.')
