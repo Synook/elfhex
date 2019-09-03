@@ -3,8 +3,8 @@ python:
   - 3.6
 install:
   - pip install pipenv
+  - pip install codecov
   - pipenv install --dev
-  - pipenv install codecov
 script:
   - pytest
 after_success:
