@@ -25,6 +25,22 @@ from .elf import Elf
 from .util import ElfhexError
 
 
+class FileLoader:
+    def __init__(self, search_dirs):
+        self.search_dirs = search_dirs
+        self.seen = set()
+
+    def load(self, path):
+        for directory in self.search_dirs:
+            try:
+                full_path = os.path.abspath(os.path.join(directory, path))
+                contents = open(full_path).read()
+                return contents, full_path
+            except FileNotFoundError:
+                pass
+        raise ElfhexError("Couldn't find {path} in {self.search_dirs}.")
+
+
 def parse_args():
     argparser = argparse.ArgumentParser(
         prog='elfhex', description='A ELF hexadecimal "assember" (elfhex).',
@@ -69,6 +85,25 @@ def report_error(e):
     print('Errors were encountered while processing input.', file=sys.stdout)
 
 
+def assemble(args, grammar, file_loader):
+    parser = Lark(grammar, parser='lalr', start='program')
+
+    # preprocess source (resolves includes and fragment references)
+    preprocessed = Preprocessor(parser, args, file_loader).preprocess()
+
+    # transform the syntax into a Program instance
+    program = Elfhex(args).transform(preprocessed)
+
+    # "assemble" it into an ELF executable
+    if args.no_header:
+        program.set_segment_positions_in_memory(0)
+        return program.render()
+    else:
+        elf = Elf(program, args)
+        program.set_segment_positions_in_memory(elf.get_header_size())
+        return elf.render()
+
+
 def main():
     # parse arguments
     args = parse_args()
@@ -76,23 +111,11 @@ def main():
     # load grammar
     grammar_path = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), 'elfhex.lark')
-    parser = Lark(open(grammar_path).read(), parser='lalr', start='program')
 
     try:
-        # preprocess source (resolves includes and fragment references)
-        preprocessed = Preprocessor(parser, args).preprocess()
-
-        # transform the syntax into a Program instance
-        program = Elfhex(args).transform(preprocessed)
-
-        # "assemble" it into an ELF executable
-        if args.no_header:
-            program.set_segment_positions_in_memory(0)
-            output = program.render()
-        else:
-            elf = Elf(program, args)
-            program.set_segment_positions_in_memory(elf.get_header_size())
-            output = elf.render()
+        # assemble
+        output = assemble(
+            args, open(grammar_path).read(), FileLoader(args.include_path))
 
         # output resulting blob
         open(args.output_path, 'wb').write(output)

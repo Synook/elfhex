@@ -6,7 +6,7 @@ ELFHex is a simple "assembler" designed for learning machine code. It takes prog
 
 ## Usage
 
-This project Python 3.6 and `pipenv`. In order to install dependencies, run `pipenv install --dev`. The program can then be run using `python -m elfhex`.
+This project Python 3.6 and `pipenv`. In order to install dependencies, run `pipenv install --dev`. The program can then be run using `python -m elfhex`. To execute the tests, run `pytest`. 
 
 To generate a distributable package, first generate `requirements.txt`, and then use `setuptools` to build the wheel. Installing this package also installs an entry point named `elfhex`.
 

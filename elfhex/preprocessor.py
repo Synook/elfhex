@@ -16,21 +16,22 @@
 
 import os
 import copy
-from lark import Visitor, Token
+from lark import Visitor, Token, Tree
 from .util import ElfhexError, defaults
 
 
 class Preprocessor:
-    def __init__(self, parser, args):
+    def __init__(self, parser, args, file_provider):
         self.parser = parser
         self.args = args
         self.search_dirs = [
             os.path.abspath(directory)
             for directory in self.args.include_path
         ]
+        self.file_provider = file_provider
 
     def preprocess(self):
-        parsed = self._process_includes(self.args.input_path)
+        parsed = self._process_includes(self.args.input_path, set())
         fragments = self._gather_fragments(parsed)
         canonical = self._merge(parsed)
         for i in range(0, self.args.max_fragment_depth):
@@ -38,28 +39,16 @@ class Preprocessor:
                 break
             if i == self.args.max_fragment_depth - 1:
                 raise ElfhexError("Max recursion depth for fragments reached.")
+        print(canonical)
         return canonical
 
-    def _try_open(self, path):
-        f = None
-        for directory in self.search_dirs:
-            try:
-                full_path = os.path.abspath(os.path.join(directory, path))
-                f = open(full_path)
-                break
-            except FileNotFoundError:
-                pass
-        if not f:
-            raise ElfhexError("Couldn't find {path} in {self.search_dirs}.")
-        return f, full_path
-
-    def _process_includes(self, path, seen=set(), fragments_only=False):
-        f, full_path = self._try_open(path)
+    def _process_includes(self, path, seen, fragments_only=False):
+        data, full_path = self.file_provider.load(path)
         if full_path in seen:
             return []
         seen.add(full_path)
 
-        parsed = self.parser.parse(f.read())
+        parsed = self.parser.parse(data)
         results = [(parsed, fragments_only)]
         for node in parsed.find_data('include'):
             include = str(node.children[-1].children[0])[1:-1]
@@ -80,11 +69,10 @@ class Preprocessor:
 
     def _merge(self, parsed):
         canonical, _ = parsed[0]
+        # Reset children (we only want segments in the output).
+        merged = Tree(canonical.data, [])
         segments = {}
-        for segment in canonical.children:
-            if segment.data == 'segment':
-                segments[str(segment.children[0])] = segment
-        for program, fragments_only in parsed[1:]:
+        for program, fragments_only in parsed:
             if fragments_only:
                 continue
             for segment in program.find_data('segment'):
@@ -95,9 +83,9 @@ class Preprocessor:
                     next(segments[name].find_data(
                         'auto_labels')).children.extend(auto_labels.children)
                 else:
-                    canonical.children.append(segment)
+                    merged.children.append(segment)
                     segments[name] = segment
-        return canonical
+        return merged
 
     def _process_fragment_contents(self, contents, alias, args, ref_num):
         buffer = []
