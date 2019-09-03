@@ -4,5 +4,8 @@ python:
 install:
   - pip install pipenv
   - pipenv install --dev
+  - pipenv install codecov
 script:
   - pytest
+after_success:
+  - codecov

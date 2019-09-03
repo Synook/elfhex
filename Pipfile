@@ -11,6 +11,8 @@ setuptools = "*"
 wheel = "*"
 pbr = "*"
 pytest = "*"
+pytest-cov = "*"
+coverage = "*"
 
 [packages]
 lark-parser = "*"

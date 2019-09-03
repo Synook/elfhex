@@ -1,7 +1,7 @@
 # ELFHex
 
- [![Build Status](https://travis-ci.org/Synook/elfhex.svg?branch=master)](https://travis-ci.org/Synook/elfhex)
- 
+ [![Build Status](https://travis-ci.org/Synook/elfhex.svg?branch=master)](https://travis-ci.org/Synook/elfhex) [![codecov](https://codecov.io/gh/Synook/elfhex/branch/master/graph/badge.svg)](https://codecov.io/gh/Synook/elfhex)
+
 This is not an officially supported Google product.
 
 ELFHex is a simple "assembler" designed for learning machine code. It takes programs comprising machine instructions and packages them into simple ELF executable binaries. It aims to do the minimum amount of transformation necessary to keep the output binaries understandable and easy to relate back to the source files. Nevertheless, it has several language features (beyond just constructing the ELF header) to make it more convenient than just trying to write an executable using a hex editor.
