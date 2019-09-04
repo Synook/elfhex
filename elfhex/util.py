@@ -14,12 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
+
 WIDTH_SYMBOLS = {
     1: 'b',
     2: 'h',
     4: 'i',
     8: 'q'
 }
+
+ProgramArguments = collections.namedtuple(
+    'ProgramArguments',
+    ['machine', 'endianness', 'align', 'memory_start', 'entry_label']
+)
 
 
 class ElfhexError(Exception):

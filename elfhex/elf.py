@@ -22,39 +22,35 @@ PROGRAM_HEADER_ENTRY_SIZE = 32
 
 
 class Elf:
-    def __init__(self, program, args):
-        self.program = program
-        self.args = args
+    def get_header_size(self, program):
+        return FILE_HEADER_SIZE + PROGRAM_HEADER_ENTRY_SIZE * (len(program.get_segments()) + 1)
 
-    def get_header_size(self):
-        return FILE_HEADER_SIZE + PROGRAM_HEADER_ENTRY_SIZE * (len(self.program.get_segments()) + 1)
-
-    def render(self):
-        default_align = self.program.get_args().default_align
-        start = self.program.get_args().memory_start
-        image = self.program.render()
-        header_size = self.get_header_size()
+    def render(self, program):
+        align = program.get_args().align
+        endianness = program.get_args().endianness
+        start = program.get_args().memory_start
+        header_size = self.get_header_size(program)
 
         e_ident = b'\x7fELF' + struct.pack(
             '=BBBBB',
             1,  # ei_class
-            2 if self.args.endianness == '>' else 1,  # ei_data
+            2 if endianness == '>' else 1,  # ei_data
             1,  # ei_version
             0,  # ei_osabi
             0,  # ei_abiversion
         ) + b'\x00' * 7
         file_header = e_ident + struct.pack(
-            f'{self.args.endianness}HHIIIIIHHHHHH',
+            f'{endianness}HHIIIIIHHHHHH',
             0x2,  # e_type = ET_EXEC
-            self.args.machine,  # e_machine
+            program.get_args().machine,  # e_machine
             1,  # e_version
-            self.program.entry_point(),  # e_entry
+            program.entry_point(),  # e_entry
             FILE_HEADER_SIZE,  # e_phoff
             0,  # e_shoff
             0,  # e_flags
             FILE_HEADER_SIZE,  # e_ehsize
             PROGRAM_HEADER_ENTRY_SIZE,  # e_phentsize
-            len(self.program.get_segments()) + \
+            len(program.get_segments()) + \
             1,  # e_phnum
             0,  # e_shentsize
             0,  # e_shnum
@@ -62,7 +58,7 @@ class Elf:
         )
         program_header_entries = []
         program_header_entries.append(struct.pack(
-            f'{self.args.endianness}IIIIIIII',
+            f'{endianness}IIIIIIII',
             1,  # p_type = PT_LOAD
             0,  # p_offset
             start,  # p_vaddr
@@ -70,11 +66,11 @@ class Elf:
             header_size,  # p_filesz
             header_size,  # p_memsz
             0x5,  # p_flags
-            default_align,  # p_align
+            align,  # p_align
         ))
-        for _, segment in self.program.get_segments():
+        for _, segment in program.get_segments():
             program_header_entries.append(struct.pack(
-                f'{self.args.endianness}IIIIIIII',
+                f'{endianness}IIIIIIII',
                 1,  # p_type = PT_LOAD
                 segment.location_in_file,  # p_offset
                 segment.location_in_memory,  # p_vaddr
@@ -84,4 +80,4 @@ class Elf:
                 segment.get_flags(),  # p_flags
                 segment.get_align(),  # p_align
             ))
-        return file_header + b''.join(program_header_entries) + image
+        return file_header + b''.join(program_header_entries)

@@ -6,6 +6,7 @@ requirements.txt
 build/
 dist/
 
+.pytest_cache
 .coverage
 htmlcov
 

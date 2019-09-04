@@ -29,6 +29,9 @@ class Program:
     def get_segments(self):
         return self.segments
 
+    def get_segment_count(self):
+        return len(self.segments)
+
     def get_args(self):
         return self.args
 
@@ -43,11 +46,11 @@ class Program:
     def _shift_to_align(self, n, alignment):
         return math.ceil(n / alignment) * alignment
 
-    def set_segment_positions_in_memory(self, header_size):
+    def set_header_size(self, header_size):
         # leave space for header in memory
         location_in_file = header_size
         memory_start = self.args.memory_start + \
-            self._shift_to_align(header_size, self.args.default_align)
+            self._shift_to_align(header_size, self.args.align)
         for _, segment in self.segments:
             segment.set_location_in_file(location_in_file)
 
@@ -61,7 +64,7 @@ class Program:
 
             location_in_file += segment.get_file_size()
             memory_start += self._shift_to_align(
-                segment.get_size(), self.args.default_align)
+                segment.get_size(), self.args.align)
 
     def render(self):
         output = b''
@@ -84,7 +87,7 @@ class Segment:
         self.args = args
         self.endianness = program_args.endianness
         if not 'segment_align' in args:
-            args['segment_align'] = program_args.default_align
+            args['segment_align'] = program_args.align
         self._process_labels(contents, auto_labels)
 
     def get_name(self):

@@ -15,14 +15,14 @@
 # limitations under the License.
 
 import struct
-from lark import Transformer
+import lark
 from .program import Program, Segment, Label, AbsoluteReference, RelativeReference, Byte, AutoLabel
 from .util import WIDTH_SYMBOLS, defaults, ElfhexError
 
 
-class Elfhex(Transformer):
-    def __init__(self, args):
-        self.args = args
+class Transformer(lark.Transformer):
+    def __init__(self, program_args):
+        self.args = program_args
 
     def program(self, items):
         return Program(items, self.args)

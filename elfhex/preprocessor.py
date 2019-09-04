@@ -16,34 +16,33 @@
 
 import os
 import copy
-from lark import Visitor, Token, Tree
+from lark import Lark, Visitor, Token, Tree
 from .util import ElfhexError, defaults
 
 
 class Preprocessor:
-    def __init__(self, parser, args, file_provider):
-        self.parser = parser
-        self.args = args
-        self.search_dirs = [
-            os.path.abspath(directory)
-            for directory in self.args.include_path
-        ]
+    def __init__(self, file_provider):
+        grammar_path = os.path.join(os.path.dirname(
+            os.path.abspath(__file__)), 'elfhex.lark')
+        self.parser = Lark(open(grammar_path).read(),
+                           parser='lalr', start='program')
         self.file_provider = file_provider
 
-    def preprocess(self):
-        parsed = self._process_includes(self.args.input_path, set())
+    def preprocess(self, input_path, max_fragment_depth):
+        if max_fragment_depth < 0:
+            raise ValueError("max_fragment_depth must be greater than 0.")
+        parsed = self._process_includes(input_path, set())
         fragments = self._gather_fragments(parsed)
         canonical = self._merge(parsed)
-        for i in range(0, self.args.max_fragment_depth):
+        for _ in range(0, max_fragment_depth):
             if not self._replace_fragments(canonical, fragments):
                 break
-            if i == self.args.max_fragment_depth - 1:
-                raise ElfhexError("Max recursion depth for fragments reached.")
-        print(canonical)
+        if self._replace_fragments(canonical, fragments):
+            raise ElfhexError("Max recursion depth for fragments reached.")
         return canonical
 
     def _process_includes(self, path, seen, fragments_only=False):
-        data, full_path = self.file_provider.load(path)
+        data, full_path = self.file_provider[path]
         if full_path in seen:
             return []
         seen.add(full_path)

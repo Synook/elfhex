@@ -14,4 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .transformer import Transformer
+from .preprocessor import Preprocessor
+from .elf import Elf
+from .file_loader import FileLoader
+from .util import ElfhexError, ProgramArguments
+
 name = 'elfhex'
