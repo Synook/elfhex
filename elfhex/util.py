@@ -6,7 +6,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#      http://www.apache.org/licenses/LICENSE-2.0,
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +15,8 @@
 # limitations under the License.
 
 import collections
+import os
+from lark import Lark
 
 WIDTH_SYMBOLS = {
     1: 'b',
@@ -23,14 +25,16 @@ WIDTH_SYMBOLS = {
     8: 'q'
 }
 
-ProgramArguments = collections.namedtuple(
-    'ProgramArguments',
-    ['machine', 'endianness', 'align', 'memory_start', 'entry_label']
-)
-
 
 class ElfhexError(Exception):
     pass
+
+
+def get_parser():
+    grammar_path = os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), 'elfhex.lark')
+    return Lark(
+        open(grammar_path).read(), parser='lalr', start='program')
 
 
 def defaults(items, expected, *defaults):

@@ -36,9 +36,6 @@ def parse_args():
         '-s', '--memory_start', type=lambda n: int(n, 16), default='08048000',
         help='The starting memory address in hexadecimal.')
     argparser.add_argument(
-        '-a', '--align', type=int, default=4096,
-        help='The default alignment for segments.')
-    argparser.add_argument(
         '-f', '--max_fragment_depth', type=int, default=16,
         help='The maximum depth when resolving fragment references.')
     argparser.add_argument(
@@ -50,22 +47,8 @@ def parse_args():
     argparser.add_argument(
         '-r', '--no_header', action='store_true',
         help='Do not output the ELF header.')
-    argparser.add_argument(
-        '--big_endian', dest='endianness',
-        action='store_const', const='>', default='<',
-        help='Set the endianness of the output program to big-endian.')
-    argparser.add_argument(
-        '--machine', type=int, default=3,
-        help='The value for e_machine in the ELF header.')
 
     return argparser.parse_args()
-
-
-def _get_program_args(args):
-    return elfhex.ProgramArguments(
-        machine=args.machine, endianness=args.endianness,
-        align=args.align, memory_start=args.memory_start,
-        entry_label='_start')
 
 
 def report_error(e):
@@ -78,24 +61,23 @@ def main():
     args = parse_args()
 
     try:
-        # assemble
-        program_args = _get_program_args(args)
-
         # preprocess source (resolves includes and fragment references)
-        preprocessed = elfhex.Preprocessor(elfhex.FileLoader(args.include_path)).preprocess(
-            args.input_path, args.max_fragment_depth)
+        preprocessed = \
+            elfhex.Preprocessor(elfhex.FileLoader(args.include_path)) \
+            .preprocess(args.input_path, args.max_fragment_depth)
 
         # transform the syntax into a Program instance
-        program = elfhex.Transformer(program_args).transform(preprocessed)
+        program = elfhex.Transformer().transform(preprocessed)
 
         # "assemble" it into an ELF executable
         if args.no_header:
-            program.set_header_size(0)
+            program.set_label_locations(0, args.memory_start)
             return program.render()
         else:
             elf = elfhex.Elf()
-            program.set_header_size(elf.get_header_size(program))
-            output = elf.render(program) + program.render()
+            program.set_label_locations(
+                elf.get_header_size(program), args.memory_start)
+            output = elf.render(program, args.entry_label) + program.render()
 
         # output resulting blob
         open(args.output_path, 'wb').write(output)

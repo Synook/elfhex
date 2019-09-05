@@ -17,13 +17,15 @@ pipenv lock -r > requirements.txt
 pipenv run python setup.py bdist_wheel
 ```
 
-In general, to run the program needs an input source file and a location for the output executable. There are other options, shown by running `elfhex -h`. The target architecture can be specified as a numeric value (corresponding to the `e_machine` field in the ELF header), the default being `3` (Intel 80386 / x86). The endianness can also be changed to big-endian from the default little-endian output. Other options include the ability to omit the ELF header in the output, along with changing the default alignment, starting memory address, and entry point label.
+In general, to run the program needs an input source file and a location for the output executable. There are other options, shown by running `elfhex -h`. Other options include the ability to omit the ELF header in the output, and set the starting memory address and entry point label.
 
 ## Source program overview
 
 Source files are written in `.eh` format. Each EH file comprises *includes*, zero or more *segments*, corresponding to segments in the output ELF file, and zero or more *fragments*, which can be copied into segment code. Each segment has a name, various arguments, and contents.
 
 ```
+program 3 < 4096 # program declaration
+
 include "file.eh" # segments will be merged by name
 include fragments "some/file.eh" # only fragments will be included
 
@@ -41,6 +43,12 @@ fragment fragment_name(arg1, arg2) {
 ```
 
 Sections (e.g., `.text`, `.bss`, etc.) are not represented, as they are not necessary in an executable ELF file. After all includes are processed, there must be at least one segment which defines a label named `_start` (configurable). This label will be used as the entry point for program execution.
+
+## Program declaration
+
+Every source file must begin with the program declaration. This defines the target machine (the numeric value for `e_machine` in the ELF header), the endianness of the file, either `<` (little) or `>` (big), and the default segment alignment. For example, `program 3 < 4096` would indicate an `e_machine` value of 3 (x86), little-endian output, and a default alignment of 4096 bytes.
+
+All included source files must have the same `e_machine` value and endianness, otherwise an error is emitted. If the alignments differ, then the largest value overall is used.
 
 ## Segments
 
@@ -129,6 +137,8 @@ Recursive inclusion is possible (that is, the includes for each included file ar
 This program simply prints out "hello, world" five times.
 
 ```
+program 3 < 4096
+
 include fragments "other.eh"
 
 segment text(flags: rx) {
@@ -156,6 +166,8 @@ segment strings(flags: r) {
 
 other.eh:
 ```
+program 3 < 4096
+
 fragment exit() {
   @common_syscall(=1d4)
 }

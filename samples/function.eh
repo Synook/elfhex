@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+program 3 < 4096
+
 fragment function_initstack() {
     8b 2d <<stack:stack + 1024>> # mov ebp, stack
     8b e5 # mov esp, ebp

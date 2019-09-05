@@ -14,9 +14,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import elfhex
-
 MAIN_FILE = 'test_input.eh'
-STANDARD_ARGS = elfhex.ProgramArguments(
-    machine=3, endianness='<', align=16,
-    memory_start=0x1000, entry_label='_start')

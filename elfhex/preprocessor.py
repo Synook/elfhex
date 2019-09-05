@@ -17,15 +17,12 @@
 import os
 import copy
 from lark import Lark, Visitor, Token, Tree
-from .util import ElfhexError, defaults
+from .util import ElfhexError, defaults, get_parser
 
 
 class Preprocessor:
     def __init__(self, file_provider):
-        grammar_path = os.path.join(os.path.dirname(
-            os.path.abspath(__file__)), 'elfhex.lark')
-        self.parser = Lark(open(grammar_path).read(),
-                           parser='lalr', start='program')
+        self.parser = get_parser()
         self.file_provider = file_provider
 
     def preprocess(self, input_path, max_fragment_depth):
@@ -66,12 +63,25 @@ class Preprocessor:
                     'contents': contents}
         return fragments
 
+    def _merge_metadata(self, metadata, program):
+        if not metadata != None:
+            metadata, = program.find_data('metadata')
+        else:
+            new_metadata, = program.find_data('metadata')
+            if metadata.children[0:2] != new_metadata.children[0:2]:
+                raise ElfhexError("Incompatible metadata.")
+            metadata.children[2] = Token('INT', str(
+                max(int(metadata.children[2]), int(new_metadata.children[2]))))
+        return metadata
+
     def _merge(self, parsed):
         canonical, _ = parsed[0]
-        # Reset children (we only want segments in the output).
+        # Reset children (we don't want fragments in the output).
         merged = Tree(canonical.data, [])
         segments = {}
+        metadata = None
         for program, fragments_only in parsed:
+            metadata = self._merge_metadata(metadata, program)
             if fragments_only:
                 continue
             for segment in program.find_data('segment'):
@@ -84,6 +94,7 @@ class Preprocessor:
                 else:
                     merged.children.append(segment)
                     segments[name] = segment
+        merged.children.insert(0, metadata)
         return merged
 
     def _process_fragment_contents(self, contents, alias, args, ref_num):

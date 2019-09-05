@@ -25,10 +25,10 @@ class Elf:
     def get_header_size(self, program):
         return FILE_HEADER_SIZE + PROGRAM_HEADER_ENTRY_SIZE * (len(program.get_segments()) + 1)
 
-    def render(self, program):
-        align = program.get_args().align
-        endianness = program.get_args().endianness
-        start = program.get_args().memory_start
+    def render(self, program, entry_label):
+        align = program.get_metadata().align
+        endianness = program.get_metadata().endianness
+        start = program.get_memory_start()
         header_size = self.get_header_size(program)
 
         e_ident = b'\x7fELF' + struct.pack(
@@ -42,9 +42,9 @@ class Elf:
         file_header = e_ident + struct.pack(
             f'{endianness}HHIIIIIHHHHHH',
             0x2,  # e_type = ET_EXEC
-            program.get_args().machine,  # e_machine
+            program.get_metadata().machine,  # e_machine
             1,  # e_version
-            program.entry_point(),  # e_entry
+            program.get_label_location(entry_label),  # e_entry
             FILE_HEADER_SIZE,  # e_phoff
             0,  # e_shoff
             0,  # e_flags
@@ -78,6 +78,6 @@ class Elf:
                 segment.get_file_size(),  # p_filesz
                 segment.get_size(),  # p_memsz
                 segment.get_flags(),  # p_flags
-                segment.get_align(),  # p_align
+                segment.get_align(align),  # p_align
             ))
         return file_header + b''.join(program_header_entries)

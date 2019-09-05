@@ -14,17 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
 import struct
 import math
-from collections import defaultdict
 from .util import WIDTH_SYMBOLS, ElfhexError
 
 
 class Program:
-    def __init__(self, segments, args):
-        self.args = args
+    def __init__(self, metadata, segments):
         self.segments = [(segment.name, segment)
                          for segment in segments if segment]
+        self.metadata = metadata
+        self.label_locations_set = False
 
     def get_segments(self):
         return self.segments
@@ -32,31 +33,38 @@ class Program:
     def get_segment_count(self):
         return len(self.segments)
 
-    def get_args(self):
-        return self.args
+    def get_metadata(self):
+        return self.metadata
 
-    def entry_point(self):
+    def get_label_location(self, label_name):
+        self._check_label_locations_set()
         for _, segment in self.segments:
             for _, label in segment.labels.items():
-                if label.name == self.args.entry_label:
+                if label.name == label_name:
                     return label.absolute_location
         raise ElfhexError(
-            f'Entry point label [{self.args.entry_label}] not defined.')
+            f'Label [{label_name}] not defined.')
+
+    def get_memory_start(self):
+        self._check_label_locations_set()
+        return self.memory_start
 
     def _shift_to_align(self, n, alignment):
         return math.ceil(n / alignment) * alignment
 
-    def set_header_size(self, header_size):
+    def set_label_locations(self, header_size, memory_start):
+        self.label_locations_set = True
+        self.memory_start = memory_start
         # leave space for header in memory
         location_in_file = header_size
-        memory_start = self.args.memory_start + \
-            self._shift_to_align(header_size, self.args.align)
+        memory_start += self._shift_to_align(header_size, self.metadata.align)
         for _, segment in self.segments:
             segment.set_location_in_file(location_in_file)
 
-            position_shift = location_in_file % segment.get_align()
+            position_shift = location_in_file % segment.get_align(
+                self.metadata.align)
             memory_start += position_shift - \
-                (memory_start % segment.get_align())
+                (memory_start % segment.get_align(self.metadata.align))
             segment.set_location_in_memory(memory_start)
 
             for label in segment.labels.values():
@@ -64,30 +72,39 @@ class Program:
 
             location_in_file += segment.get_file_size()
             memory_start += self._shift_to_align(
-                segment.get_size(), self.args.align)
+                segment.get_size(), self.metadata.align)
 
     def render(self):
+        self._check_label_locations_set()
         output = b''
         all_labels = self._collate_labels()
         for _, segment in self.segments:
-            output += segment.render(all_labels)
+            output += segment.render(all_labels, self.metadata.endianness)
         return output
 
     def _collate_labels(self):
-        all_labels = defaultdict(dict)
+        all_labels = collections.defaultdict(dict)
         for segment_name, segment in self.segments:
             for label_name, label in segment.labels.items():
                 all_labels[segment_name][label_name] = label
         return all_labels
 
+    def _check_label_locations_set(self):
+        if not self.label_locations_set:
+            raise ElfhexError(
+                'Illegal operation performed before label locations were set.')
+
+
+Metadata = collections.namedtuple(
+    'Metadata',
+    ['machine', 'endianness', 'align']
+)
+
 
 class Segment:
-    def __init__(self, program_args, name, args, contents, auto_labels):
+    def __init__(self, name, args, contents, auto_labels):
         self.name = name
         self.args = args
-        self.endianness = program_args.endianness
-        if not 'segment_align' in args:
-            args['segment_align'] = program_args.align
         self._process_labels(contents, auto_labels)
 
     def get_name(self):
@@ -104,8 +121,8 @@ class Segment:
                 flags |= 0x1
         return flags
 
-    def get_align(self):
-        return self.args.get('segment_align')
+    def get_align(self, default):
+        return self.args.get('segment_align', default)
 
     def _process_labels(self, contents, auto_labels):
         self.contents = []
@@ -143,13 +160,15 @@ class Segment:
     def set_location_in_file(self, location_in_file):
         self.location_in_file = location_in_file
 
-    def render(self, all_labels):
+    def render(self, all_labels, endianness):
         output = b''
         for element in self.contents:
             if type(element) == AbsoluteReference:
-                output += element.render(all_labels, self.endianness)
+                output += element.render(all_labels, endianness)
             elif type(element) == RelativeReference:
-                output += element.render(self.labels, self.endianness)
+                output += element.render(self.labels, endianness)
+            elif type(element) == Number:
+                output += element.render(endianness)
             else:
                 output += element.render()
         return output
@@ -242,3 +261,23 @@ class Byte:
 
     def render(self):
         return bytearray(struct.pack('B', self.byte))
+
+
+class Number:
+    def __init__(self, number, width, signed):
+        self.number = number
+        self.width = width
+        self.signed = signed
+
+    def get_size(self):
+        return self.width
+
+    def render(self, endianness):
+        width_symbol = WIDTH_SYMBOLS[int(self.width)]
+        if self.signed:
+            width_symbol = width_symbol.upper()
+        try:
+            return struct.pack(
+                f'{endianness}{width_symbol}', self.number)
+        except struct.error:
+            raise ElfhexError('Number too big for specified width.')

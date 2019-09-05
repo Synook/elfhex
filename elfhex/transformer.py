@@ -16,19 +16,20 @@
 
 import struct
 import lark
-from .program import Program, Segment, Label, AbsoluteReference, RelativeReference, Byte, AutoLabel
+from .program import Program, Segment, Label, AbsoluteReference, RelativeReference, Byte, AutoLabel, Number, Metadata
 from .util import WIDTH_SYMBOLS, defaults, ElfhexError
 
 
 class Transformer(lark.Transformer):
-    def __init__(self, program_args):
-        self.args = program_args
-
     def program(self, items):
-        return Program(items, self.args)
+        return Program(items[0], items[1:])
+
+    def metadata(self, items):
+        machine, endianness, align = items
+        return Metadata(machine=int(machine), endianness=endianness, align=int(align))
 
     def segment(self, items):
-        return Segment(self.args, *items)
+        return Segment(*items)
 
     def segment_content(self, items):
         return items
@@ -77,17 +78,7 @@ class Transformer(lark.Transformer):
     def number(self, items):
         sign, number_value = items
         number, base, width = self._parse_number_value(number_value)
-        width_symbol = WIDTH_SYMBOLS[int(width)]
-        if sign == '=':
-            width_symbol = width_symbol.upper()
-        try:
-            return [
-                Byte(a)
-                for a in struct.pack(
-                    f'{self.args.endianness}{width_symbol}',
-                    int(number, base) * (-1 if sign == '-' else 1))]
-        except struct.error:
-            raise ElfhexError('Number too big for specified width.')
+        return Number(int(number, base) * (-1 if sign == '-' else 1), width, sign != '=')
 
     def _parse_number_value(self, value):
         try:
@@ -110,12 +101,6 @@ class Transformer(lark.Transformer):
 
     def string(self, string):
         return list(map(lambda c: Byte(ord(c)), string[0][1:-1]))
-
-    def include(self, items):
-        return None
-
-    def fragment(self, items):
-        return None
 
     def fragment_var(self, items):
         raise ElfhexError(

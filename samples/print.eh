@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+program 3 < 4096
+
 include fragments "common.eh"
 
 segment text(flags: rx) {
