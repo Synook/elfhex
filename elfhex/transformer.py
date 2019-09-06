@@ -16,20 +16,20 @@
 
 import struct
 import lark
-from .program import Program, Segment, Label, AbsoluteReference, RelativeReference, Byte, AutoLabel, Number, Metadata
+from . import program
 from .util import WIDTH_SYMBOLS, defaults, ElfhexError
 
 
 class Transformer(lark.Transformer):
     def program(self, items):
-        return Program(items[0], items[1:])
+        return program.Program(items[0], items[1:])
 
     def metadata(self, items):
         machine, endianness, align = items
-        return Metadata(machine=int(machine), endianness=endianness, align=int(align))
+        return program.Metadata(machine=int(machine), endianness=endianness, align=int(align))
 
     def segment(self, items):
-        return Segment(*items)
+        return program.Segment(*items)
 
     def segment_content(self, items):
         return items
@@ -39,46 +39,45 @@ class Transformer(lark.Transformer):
 
     def auto_label(self, items):
         name, width = items
-        return AutoLabel(name, int(width))
+        return program.AutoLabel(name, int(width))
 
     def segment_args(self, items):
         args = {}
         for item in items:
             value, = item.children
-            if value.type in ('POWER_OF_TWO', 'INT'):
-                value = int(str(value))
-            elif value.type == 'STRING':
-                value = value[1:-1]
-            elif item.data == 'segment_flags':
+            if item.data == 'segment_flags':
                 value = str(value)
+            else:
+                value = int(value)
             args[item.data] = value
         return args
 
     def label(self, items):
-        return Label(*items)
+        return program.Label(*items)
 
     def abs(self, items):
         (segment, label), offset = defaults(items, 2, 0)
-        return AbsoluteReference(label, int(offset), segment)
+        return program.AbsoluteReference(label, int(offset), segment)
 
     def abs_label(self, items):
         if len(items) == 2:
-            return items
+            label, segment = items
+            return str(label), str(segment)
         else:
             label, = items
-            return (None, label)
+            return (None, str(label))
 
     def rel(self, items):
         name, width = defaults(items, 2, 1)
-        return RelativeReference(str(name), int(width))
+        return program.RelativeReference(str(name), int(width))
 
     def hex(self, hexdigits):
-        return [Byte(int(*hexdigits, 16))]
+        return program.Byte(int(*hexdigits, 16))
 
     def number(self, items):
         sign, number_value = items
         number, base, width = self._parse_number_value(number_value)
-        return Number(int(number, base) * (-1 if sign == '-' else 1), width, sign != '=')
+        return program.Number(int(number, base) * (-1 if sign == '-' else 1), width, sign != '=')
 
     def _parse_number_value(self, value):
         try:
@@ -99,8 +98,9 @@ class Transformer(lark.Transformer):
         sign, disp = items
         return int(sign + disp)
 
-    def string(self, string):
-        return list(map(lambda c: Byte(ord(c)), string[0][1:-1]))
+    def string(self, items):
+        string, = items
+        return program.String(string[1:-1])
 
     def fragment_var(self, items):
         raise ElfhexError(

@@ -136,12 +136,8 @@ class Segment:
                     element.set_location_in_segment(self.size)
                 elif type(element) == AbsoluteReference:
                     element.set_own_segment(self.name)
-                if type(element) == list:
-                    self.size += sum(item.get_size() for item in element)
-                    self.contents.extend(element)
-                else:
-                    self.size += element.get_size()
-                    self.contents.append(element)
+                self.size += element.get_size()
+                self.contents.append(element)
         self.file_size = self.size
         for label in auto_labels:
             self._register_label(label)
@@ -281,3 +277,14 @@ class Number:
                 f'{endianness}{width_symbol}', self.number)
         except struct.error:
             raise ElfhexError('Number too big for specified width.')
+
+
+class String:
+    def __init__(self, string):
+        self.string = string.encode('ascii')
+
+    def get_size(self):
+        return len(self.string)
+
+    def render(self):
+        return self.string

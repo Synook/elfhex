@@ -21,18 +21,18 @@ from .util import MAIN_FILE
 METADATA = 'program 3 < 16 '
 
 
-def _start_segment(content):
-    return 'segment a() { [_start] ' + content + ' }'
+def _segment(content):
+    return 'segment a() {' + content + ' }'
 
 
 def _flattened(content, metadata=METADATA):
-    return elfhex.get_parser().parse(metadata + _start_segment(content))
+    return elfhex.get_parser().parse(metadata + _segment(content))
 
 
 def test_preprocessor_includes():
     files = {
         MAIN_FILE: (
-            f'{METADATA} include "other.eh" {_start_segment("ff @f()")}',
+            f'{METADATA} include "other.eh" {_segment("ff @f()")}',
             MAIN_FILE),
         'other.eh': (
             METADATA + 'segment a() { ee } fragment f() { 11 }',
@@ -46,7 +46,7 @@ def test_preprocessor_includes():
 def test_preprocessor_fragmentsonly():
     files = {
         MAIN_FILE: (
-            f'{METADATA} include fragments "other.eh" {_start_segment("ff @f()")}',
+            f'{METADATA} include fragments "other.eh" {_segment("ff @f()")}',
             MAIN_FILE),
         'other.eh': (
             METADATA + 'segment a() { ee } fragment f() { 11 }',
@@ -60,7 +60,7 @@ def test_preprocessor_fragmentsonly():
 def test_preprocessor_includeonce():
     files = {
         MAIN_FILE: (
-            f'{METADATA} include "other.eh" {_start_segment("")}',
+            f'{METADATA} include "other.eh" {_segment("")}',
             MAIN_FILE),
         'other.eh': (
             f'{METADATA} include "{MAIN_FILE}"',
@@ -74,7 +74,7 @@ def test_preprocessor_includeonce():
 def test_preprocessor_fragments():
     files = {
         MAIN_FILE: (
-            METADATA + _start_segment("ff @a(11)") +
+            METADATA + _segment("ff @a(11)") +
             'fragment a(a) { $a @b($a) } fragment b(a) { $a }',
             MAIN_FILE)}
 
@@ -87,7 +87,7 @@ def test_preprocessor_maxrecursion():
     files = {
         MAIN_FILE: (
             METADATA
-            + _start_segment("@a()")
+            + _segment("@a()")
             + ' fragment a() { @b() }'
             + ' fragment b() { @c() }'
             + ' fragment c() { ff }',
@@ -100,7 +100,7 @@ def test_preprocessor_maxrecursion():
 def test_preprocessor_aliases():
     files = {
         MAIN_FILE: (
-            METADATA + _start_segment("@a()(test)") + ' fragment a() { [a] }',
+            METADATA + _segment("@a()(test)") + ' fragment a() { [a] }',
             MAIN_FILE)}
 
     output = elfhex.Preprocessor(files).preprocess(MAIN_FILE, 2)
@@ -111,7 +111,7 @@ def test_preprocessor_aliases():
 def test_preprocessor_locallabels():
     files = {
         MAIN_FILE: (
-            METADATA + _start_segment("@a()") + ' fragment a() { [__a] }',
+            METADATA + _segment("@a()") + ' fragment a() { [__a] }',
             MAIN_FILE)}
 
     output = elfhex.Preprocessor(files).preprocess(MAIN_FILE, 2)
@@ -122,7 +122,7 @@ def test_preprocessor_locallabels():
 def test_preprocessor_uniqueref():
     files = {
         MAIN_FILE: (
-            METADATA + _start_segment("@!a() @!a() @a()") +
+            METADATA + _segment("@!a() @!a() @a()") +
             ' fragment a() { 00 }',
             MAIN_FILE)}
 
@@ -134,7 +134,7 @@ def test_preprocessor_uniqueref():
 def test_preprocessor_wrongarglen():
     files = {
         MAIN_FILE: (
-            METADATA + _start_segment("@!a(11)") + ' fragment a() { 00 }',
+            METADATA + _segment("@!a(11)") + ' fragment a() { 00 }',
             MAIN_FILE)}
 
     with pytest.raises(elfhex.ElfhexError):
@@ -144,7 +144,7 @@ def test_preprocessor_wrongarglen():
 def test_preprocessor_nofragment():
     files = {
         MAIN_FILE: (
-            METADATA + _start_segment("@!b()") + ' fragment a() { 00 }',
+            METADATA + _segment("@!b()") + ' fragment a() { 00 }',
             MAIN_FILE)}
 
     with pytest.raises(elfhex.ElfhexError):
@@ -159,7 +159,7 @@ def test_preprocessor_invalidfragmentdepth():
 def test_preprocessor_incompatiblemetadata():
     files = {
         MAIN_FILE: (
-            'program 3 < 4096 include "other.eh" ' + _start_segment(''),
+            'program 3 < 4096 include "other.eh" ' + _segment(''),
             MAIN_FILE),
         'other.eh': (
             'program 2 < 4096',
@@ -170,7 +170,7 @@ def test_preprocessor_incompatiblemetadata():
 
     files = {
         MAIN_FILE: (
-            'program 3 < 4096 include "other.eh" ' + _start_segment(''),
+            'program 3 < 4096 include "other.eh" ' + _segment(''),
             MAIN_FILE),
         'other.eh': (
             'program 3 > 4096',
@@ -183,7 +183,7 @@ def test_preprocessor_incompatiblemetadata():
 def test_preprocessor_extendalign():
     files = {
         MAIN_FILE: (
-            'program 3 < 16 include "other.eh" ' + _start_segment(''),
+            'program 3 < 16 include "other.eh" ' + _segment(''),
             MAIN_FILE),
         'other.eh': (
             'program 3 < 32',
