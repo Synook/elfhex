@@ -22,10 +22,17 @@ PROGRAM_HEADER_ENTRY_SIZE = 32
 
 
 class Elf:
+    '''Generates ELF headers based on supplied ELFHex programs.'''
+
     def get_header_size(self, program):
+        '''Returns the size the header would be for a given program.'''
         return FILE_HEADER_SIZE + PROGRAM_HEADER_ENTRY_SIZE * (len(program.get_segments()) + 1)
 
     def render(self, program, entry_label):
+        '''
+        Returns the binary representation of the ELF header for the given program and entry
+        label.
+        '''
         align = program.get_metadata().align
         endianness = program.get_metadata().endianness
         start = program.get_memory_start()

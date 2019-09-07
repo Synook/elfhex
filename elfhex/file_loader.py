@@ -25,9 +25,14 @@ class FileLoader:
     '''
 
     def __init__(self, search_dirs):
+        '''Creates a new file loader that will search in the provided directories.'''
         self.search_dirs = search_dirs
 
     def __getitem__(self, path):
+        '''
+        Returns the contents of the file at the path, along with the absolute location of the file.
+        Returns an ElfhexError if the file can't be found after searching all directories.
+        '''
         for directory in self.search_dirs:
             try:
                 full_path = os.path.abspath(os.path.join(directory, path))

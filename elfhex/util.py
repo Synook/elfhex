@@ -27,10 +27,12 @@ WIDTH_SYMBOLS = {
 
 
 class ElfhexError(Exception):
+    '''An error encountered while assembling an ELFHex program.'''
     pass
 
 
 def get_parser():
+    '''Returns a parser for the ELFHex input language.'''
     grammar_path = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), 'elfhex.lark')
     return Lark(
@@ -38,6 +40,7 @@ def get_parser():
 
 
 def defaults(items, expected, *defaults):
+    '''Pads the items list up to the expected length with the provided defaults.'''
     if len(items) == expected:
         return items
     if len(items) + len(defaults) < expected:

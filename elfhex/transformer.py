@@ -21,6 +21,12 @@ from .util import WIDTH_SYMBOLS, defaults, ElfhexError
 
 
 class Transformer(lark.Transformer):
+    '''
+    Transforms a parsed ELFHex syntax tree into an elfhex.program.Program. The syntax tree must
+    only contain the program declaration and segments: use elfhex.Preprocessor to resolve includes
+    and fragment references.
+    '''
+
     def program(self, items):
         return program.Program(items[0], items[1:])
 

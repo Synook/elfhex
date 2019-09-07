@@ -21,14 +21,33 @@ from .util import ElfhexError, defaults, get_parser
 
 
 class Preprocessor:
-    def __init__(self, file_provider):
-        self.parser = get_parser()
-        self.file_provider = file_provider
+    '''Preprocesses ELFHex files, parsing them and resolving includes and fragment references.'''
 
-    def preprocess(self, input_path, max_fragment_depth):
+    def __init__(self, file_loader):
+        '''
+        Create a new preprocessor with the given file loader. The file loader must be a
+        dictionary-like object which maps filenames to file contents. The values may also be
+        two-tuples: in this case, the first element must contain the file contents, with the second
+        containing the absolute or canonical path of the file. A standard file loader which
+        searches the local file system is elfhex.FileLoader.
+        '''
+        self.parser = get_parser()
+        self.file_loader = file_loader
+
+    def preprocess(self, path, max_fragment_depth=16):
+        '''
+        Returns a syntax tree obtained by parsing the file located at the given path. This function
+        also resolves the includes and fragment references in the file, ensuring that only the
+        program declaration and segments are output in the final syntax tree. The return value of
+        this function can then be used by elfhex.Transformer.
+
+        The max_fragment_depth controls how many times fragment references will be resolved, as
+        fragments can themselves contain fragment references. If 0, then no fragments can be
+        resolved. An error will be raised if the set depth is exceeded.
+        '''
         if max_fragment_depth < 0:
             raise ValueError("max_fragment_depth must be greater than 0.")
-        parsed = self._process_includes(input_path, set())
+        parsed = self._process_includes(path, set())
         fragments = self._gather_fragments(parsed)
         canonical = self._merge(parsed)
         for _ in range(0, max_fragment_depth):
@@ -39,10 +58,14 @@ class Preprocessor:
         return canonical
 
     def _process_includes(self, path, seen, fragments_only=False):
-        data, full_path = self.file_provider[path]
-        if full_path in seen:
+        data = self.file_loader[path]
+        try:
+            data, path = data
+        except ValueError:
+            pass
+        if path in seen:
             return []
-        seen.add(full_path)
+        seen.add(path)
 
         parsed = self.parser.parse(data)
         results = [(parsed, fragments_only)]
