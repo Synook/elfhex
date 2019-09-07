@@ -40,4 +40,4 @@ class FileLoader:
                 return contents, full_path
             except FileNotFoundError:
                 pass
-        raise ElfhexError("Couldn't find {path} in {self.search_dirs}.")
+        raise ElfhexError(f"Couldn't find {path} in {self.search_dirs}.")
