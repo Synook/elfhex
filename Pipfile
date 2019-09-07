@@ -4,9 +4,6 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-pylint = "*"
-rope = "*"
-autopep8 = "*"
 setuptools = "*"
 wheel = "*"
 pbr = "*"
@@ -14,9 +11,10 @@ pytest = "<=5.0.1"
 pytest-mock = "*"
 pytest-cov = "*"
 coverage = "*"
+pipenv-to-requirements = "*"
 
 [packages]
-lark-parser = "*"
+lark-parser = ">=0.7.4"
 
 [requires]
 python_version = "3.6"

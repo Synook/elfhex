@@ -1,7 +1,8 @@
 __pycache__/
 *.pyc
 
-requirements.txt
+Pipfile.lock
+requirements*.txt
 *.egg-info/
 build/
 dist/

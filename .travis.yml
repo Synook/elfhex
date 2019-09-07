@@ -9,7 +9,7 @@ script:
   - pytest
 after_success:
   - codecov
-before_deploy: pipenv lock -r > requirements.txt
+before_deploy: pipenv run pipenv_to_requirements
 deploy:
   provider: pypi
   user: elfhex

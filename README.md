@@ -8,22 +8,22 @@ ELFHex is a simple "assembler" designed for learning machine code. It takes prog
 
 ## Usage
 
-To install the package, run:
+ELFHex requires at least Python 3.6. To install the package, run:
 
 ```
 pip install elfhex
 ```
 
-This installs a command-line tool named `elfhex`. View its usage using `elfhex -h`. In general, the tool needs an input source file and a location for the output executable. Other options include the ability to omit the ELF header in the output, and set the starting memory address and entry point label.
+This installs a command-line tool named `elfhex`. View its usage with `elfhex -h`. In general, the tool needs an input source file and a location for the output executable. Other options include the ability to omit the ELF header in the output, and set the starting memory address and entry point label.
 
 ### Development
 
 This project uses Python 3.6 and `pipenv`. In order to install dependencies, run `pipenv install --dev`. The program can then be run using `python -m elfhex`. To execute the tests, run `pytest`. 
 
-To build a package, first generate `requirements.txt`, and then use `setuptools` to build the wheel.
+To build a package, first generate `requirements.txt`, and then use `setuptools` to build the distributable artifacts.
 
 ```
-pipenv lock -r > requirements.txt
+pipenv run pipenv_to_requirements
 pipenv run python setup.py sdist bdist_wheel
 ```
 
