@@ -9,3 +9,11 @@ script:
   - pytest
 after_success:
   - codecov
+deploy:
+  provider: pypi
+  user: elfhex
+  password:
+    secure: thrrpu0fZ1e5m2tJ2DNgIF2OgDqHV0HKiNSwsaSj1TzIM4X/srLVzJFNAsw2Lz1vCWg5hALjX4RRcQat21LLs6M7o2weJ+3Bjd266hgn9y5bBbhr8+XTzfBmwU/wLtgg48gFQSjoDQGudcKVrg1VWIs7IYzt0UMPXMVGliqA0nIw6nPH87ceST78nxy1qHY+MuZsttuMWd85Z5uXHoyRsuntQAeIhcg7ePB/agL5brLPXs5XSf9iLTpc/mDzbx7M1i30SD92SELQtWC9WOIXS2V/paXEROrRnv28caKAfFPVm4dAIFHo6Yygepc8mh1fEdxWqZckIKnxMKhBdwJxtJP1TYZWHcRenmZImKchVoKC8EW94Mu/s6lLFtu+xc7YwyNWJi4362rcAlSi01yTNee8EfMmWkGGQSqYZh8pHEuWA9p2bUtuBVeSo53RYr72xsw+ZK04spLLlt72/ErUivzLvgOUZEhgndzYvVaoaxZfbxh3puSqiBKgF/dxatShv0vn8i9WZFPvKKbH+UB+CyVtAElz4d3eaUYEkpPJRrXbLMJJNRU5z7M8pbcSnhsnET0nfa0l/0MSMEmDErHbOuYERjkbSYY5daKFoHAJ244+BCiCAxPEdE789GOJRNl6ixYre0UXlH+GCd7P9CoflQSSBCp2+1K2ReCkWkKAvo0=
+  on:
+    tags: true
+  distributions: "sdist bdist_wheel"

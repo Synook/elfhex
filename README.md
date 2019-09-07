@@ -4,20 +4,28 @@
 
 This is not an officially supported Google product.
 
-ELFHex is a simple "assembler" designed for learning machine code. It takes programs comprising machine instructions and packages them into simple ELF executable binaries. It aims to do the minimum amount of transformation necessary to keep the output binaries understandable and easy to relate back to the source files. Nevertheless, it has several language features (beyond just constructing the ELF header) to make it more convenient than just trying to write an executable using a hex editor.
+ELFHex is a simple "assembler" designed for learning machine code. It takes programs comprising machine instructions and packages them into simple 32-bit ELF executable binaries. It aims to do the minimum amount of transformation necessary to keep the output binaries understandable and easy to relate back to the source files. Nevertheless, it has several language features (beyond just constructing the ELF header) to make it more convenient than just trying to write an executable using a hex editor.
 
 ## Usage
 
+To install the package, run:
+
+```
+pip install elfhex
+```
+
+This installs a command-line tool named `elfhex`. View its usage using `elfhex -h`. In general, the tool needs an input source file and a location for the output executable. Other options include the ability to omit the ELF header in the output, and set the starting memory address and entry point label.
+
+### Development
+
 This project uses Python 3.6 and `pipenv`. In order to install dependencies, run `pipenv install --dev`. The program can then be run using `python -m elfhex`. To execute the tests, run `pytest`. 
 
-To generate a distributable package, first generate `requirements.txt`, and then use `setuptools` to build the wheel. Installing this package also installs an entry point named `elfhex`.
+To build a package, first generate `requirements.txt`, and then use `setuptools` to build the wheel.
 
 ```
 pipenv lock -r > requirements.txt
-pipenv run python setup.py bdist_wheel
+pipenv run python setup.py sdist bdist_wheel
 ```
-
-In general, to run the program needs an input source file and a location for the output executable. There are other options, shown by running `elfhex -h`. Other options include the ability to omit the ELF header in the output, and set the starting memory address and entry point label.
 
 ## Source program overview
 
