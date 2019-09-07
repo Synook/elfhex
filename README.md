@@ -1,6 +1,6 @@
 # ELFHex
 
- [![Build Status](https://travis-ci.org/Synook/elfhex.svg?branch=master)](https://travis-ci.org/Synook/elfhex) [![codecov](https://codecov.io/gh/Synook/elfhex/branch/master/graph/badge.svg)](https://codecov.io/gh/Synook/elfhex)
+ [![Build Status](https://travis-ci.org/Synook/elfhex.svg?branch=master)](https://travis-ci.org/Synook/elfhex) [![Coverage Status](https://coveralls.io/repos/github/Synook/elfhex/badge.svg?branch=master)](https://coveralls.io/github/Synook/elfhex?branch=master)
 
 This is not an officially supported Google product.
 

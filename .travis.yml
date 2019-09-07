@@ -3,12 +3,12 @@ python:
   - 3.6
 install:
   - pip install pipenv
-  - pip install codecov
+  - pip install coveralls
   - pipenv install --dev
 script:
   - pytest
 after_success:
-  - codecov
+  - coveralls
 before_deploy: pipenv run pipenv_to_requirements
 deploy:
   provider: pypi
