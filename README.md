@@ -10,7 +10,7 @@ ELFHex is a simple "assembler" designed for learning machine code. It takes prog
 
 ELFHex requires at least Python 3.6. To install the package, run:
 
-```
+```shell
 pip install elfhex
 ```
 
@@ -22,14 +22,29 @@ This project uses Python 3.6 and `pipenv`. In order to install dependencies, run
 
 To build a package, first generate `requirements.txt`, and then use `setuptools` to build the distributable artifacts.
 
-```
+```shell
 pipenv run pipenv_to_requirements
 pipenv run python setup.py sdist bdist_wheel
 ```
 
-## Source program overview
+### As a library
 
-Source files are written in `.eh` format. Each EH file comprises *includes*, zero or more *segments*, corresponding to segments in the output ELF file, and zero or more *fragments*, which can be copied into segment code. Each segment has a name, various arguments, and contents.
+The ELFHex module can also be imported as a library. The command-line tool's usage of it can be seen in `__main__.py`. In general, there are separate components that deal with preprocessing, transformation, rendering, and the ELF header.
+
+```python
+import elfhex
+file_loader = elfhex.FileLoader(include_path)
+preprocessor = elfhex.Preprocessor(file_loader)
+preprocessed = preprocessor.preprocess(input_path, max_fragment_depth)
+program = elfhex.Transformer().transform(preprocessed)
+header = elfhex.elf.get_header(entry_label)
+program.prepend_header_to_first_segment(header)
+output = program.render(memory_start)
+```
+
+## Language reference
+
+Source files are written in `.eh` format. Each EH file comprises the *program declaration*, *includes* of other source files,  *segments*, corresponding to segments in the output ELF file, and *fragments*, which can be copied into segment code. Each segment has a name, various arguments, and contents.
 
 ```
 program 3 < 4096 # program declaration
@@ -139,6 +154,8 @@ Various source files can be composed into a single executable using the include 
 If only fragments need to be imported from a file, `include fragments "..."` can be used instead. With this statement, no segments from the file, or its includes, will be incorporated into the output.
 
 Recursive inclusion is possible (that is, the includes for each included file are also processed). If a file has already been included, all future include statements for it are ignored.
+
+As stated earlier, all included files must have the same target machine and endianness in the program declaration. Alignments can differ but the largest value will be used.
 
 ## Example
 
