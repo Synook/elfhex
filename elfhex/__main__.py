@@ -47,38 +47,45 @@ def _parse_args(argv=None):
     argparser.add_argument(
         '-r', '--no-header', action='store_true',
         help='Do not output the ELF header.')
+    argparser.add_argument(
+        '-H', '--header-segment', action='store_true',
+        help='Place the header in its own segment.')
 
     return argparser.parse_args(argv) if argv else argparser.parse_args()
 
 
 def assemble(argv=None):
     '''
-    Assembles an ELFHex source program into an executable, with the provided argements taken from
+    Assembles an ELFHex source program into an executable, with the provided arguments taken from
     the command line by default.
     '''
 
-    # parse arguments
+    # Parse arguments.
     args = _parse_args(argv)
 
-    # preprocess source (resolves includes and fragment references)
+    # Preprocess source (resolves includes and fragment references).
     preprocessed = \
         elfhex.Preprocessor(elfhex.FileLoader(args.include_path)) \
         .preprocess(args.input_path, args.max_fragment_depth)
 
-    # transform the syntax into a Program instance
+    # Transform the syntax into a Program instance.
     program = elfhex.Transformer().transform(preprocessed)
 
-    # "assemble" it into an ELF executable
-    if args.no_header:
-        program.set_label_locations(0, args.memory_start)
-        output = program.render()
-    else:
-        elf = elfhex.Elf()
-        program.set_label_locations(
-            elf.get_header_size(program), args.memory_start)
-        output = elf.render(program, args.entry_label) + program.render()
+    if not args.no_header:
+        # Add the ELF header. If we want the header to be in its own segment then we need to
+        # count it when generating the header.
+        extra_segments = 1 if args.header_segment else 0
+        header = elfhex.elf.get_header(
+            len(program.get_segments()) + extra_segments, args.entry_label)
+        if args.header_segment:
+            program.prepend_header_segment(header)
+        else:
+            program.prepend_header_to_first_segment(header)
 
-    # output resulting blob
+    # Generate the binary output.
+    output = program.render(args.memory_start)
+
+    # Output the resulting blob.
     open(args.output_path, 'wb').write(output)
     print(f"Assembled. Total size: {len(output)} bytes.")
 

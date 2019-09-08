@@ -15,76 +15,75 @@
 # limitations under the License.
 
 import struct
+from . import program
 
 # always the case for ELF files
 FILE_HEADER_SIZE = 52
 PROGRAM_HEADER_ENTRY_SIZE = 32
 
 
-class Elf:
-    '''Generates ELF headers based on supplied ELFHex programs.'''
+class ElfHeader:
+    '''The file header of an ELF file.'''
 
-    def get_header_size(self, program):
-        '''Returns the size the header would be for a given program.'''
-        return FILE_HEADER_SIZE + PROGRAM_HEADER_ENTRY_SIZE * (len(program.get_segments()) + 1)
+    def __init__(self, entry_label):
+        self.entry_label = entry_label
 
-    def render(self, program, entry_label):
-        '''
-        Returns the binary representation of the ELF header for the given program and entry
-        label.
-        '''
-        align = program.get_metadata().align
-        endianness = program.get_metadata().endianness
-        start = program.get_memory_start()
-        header_size = self.get_header_size(program)
+    def get_size(self):
+        return FILE_HEADER_SIZE
 
+    def render(self, program, segment):
         e_ident = b'\x7fELF' + struct.pack(
             '=BBBBB',
             1,  # ei_class
-            2 if endianness == '>' else 1,  # ei_data
+            2 if program.get_metadata().endianness == '>' else 1,  # ei_data
             1,  # ei_version
             0,  # ei_osabi
             0,  # ei_abiversion
         ) + b'\x00' * 7
-        file_header = e_ident + struct.pack(
-            f'{endianness}HHIIIIIHHHHHH',
+        return e_ident + struct.pack(
+            f'{program.get_metadata().endianness}HHIIIIIHHHHHH',
             0x2,  # e_type = ET_EXEC
             program.get_metadata().machine,  # e_machine
             1,  # e_version
-            program.get_label_location(entry_label),  # e_entry
+            program.get_label_location(self.entry_label),  # e_entry
             FILE_HEADER_SIZE,  # e_phoff
             0,  # e_shoff
             0,  # e_flags
             FILE_HEADER_SIZE,  # e_ehsize
             PROGRAM_HEADER_ENTRY_SIZE,  # e_phentsize
-            len(program.get_segments()) + \
-            1,  # e_phnum
+            len(program.get_segments()),  # e_phnum
             0,  # e_shentsize
             0,  # e_shnum
             0,  # e_shstrndx
         )
-        program_header_entries = []
-        program_header_entries.append(struct.pack(
-            f'{endianness}IIIIIIII',
+
+
+class ProgramHeader:
+    '''A program header entry in an ELF file.'''
+
+    def __init__(self, segment_index):
+        self.segment_index = segment_index
+
+    def get_size(self):
+        return PROGRAM_HEADER_ENTRY_SIZE
+
+    def render(self, program, segment):
+        _, segment = program.get_segments()[self.segment_index]
+
+        return struct.pack(
+            f'{program.get_metadata().endianness}IIIIIIII',
             1,  # p_type = PT_LOAD
-            0,  # p_offset
-            start,  # p_vaddr
-            start,  # p_paddr
-            header_size,  # p_filesz
-            header_size,  # p_memsz
-            0x5,  # p_flags
-            align,  # p_align
-        ))
-        for _, segment in program.get_segments():
-            program_header_entries.append(struct.pack(
-                f'{endianness}IIIIIIII',
-                1,  # p_type = PT_LOAD
-                segment.location_in_file,  # p_offset
-                segment.location_in_memory,  # p_vaddr
-                segment.location_in_memory,  # p_paddr
-                segment.get_file_size(),  # p_filesz
-                segment.get_size(),  # p_memsz
-                segment.get_flags(),  # p_flags
-                segment.get_align(align),  # p_align
-            ))
-        return file_header + b''.join(program_header_entries)
+            segment.location_in_file,  # p_offset
+            segment.location_in_memory,  # p_vaddr
+            segment.location_in_memory,  # p_paddr
+            segment.get_file_size(),  # p_filesz
+            segment.get_size(),  # p_memsz
+            segment.get_flags(),  # p_flags
+            segment.get_align(program.get_metadata().align),  # p_align
+        )
+
+
+def get_header(segment_count, entry_label):
+    '''Returns the ELF header for the given entry_label and number of segments.'''
+    return [ElfHeader(entry_label)] + \
+        [ProgramHeader(i) for i in range(0, segment_count)]
