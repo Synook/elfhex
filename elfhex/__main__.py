@@ -72,11 +72,8 @@ def assemble(argv=None):
     program = elfhex.Transformer().transform(preprocessed)
 
     if not args.no_header:
-        # Add the ELF header. If we want the header to be in its own segment then we need to
-        # count it when generating the header.
-        extra_segments = 1 if args.header_segment else 0
-        header = elfhex.elf.get_header(
-            len(program.get_segments()) + extra_segments, args.entry_label)
+        # Add the ELF header.
+        header = elfhex.elf.get_header(args.entry_label)
         if args.header_segment:
             program.prepend_header_segment(header)
         else:

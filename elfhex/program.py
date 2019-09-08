@@ -17,6 +17,7 @@
 import collections
 import struct
 import math
+import inspect
 from .util import WIDTH_SYMBOLS, ElfhexError
 
 
@@ -25,10 +26,9 @@ class Program:
 
     def __init__(self, metadata, segments):
         '''Create a new program with the provided metadata and segment list.'''
-        self.segments = [(segment.name, segment)
-                         for segment in segments if segment]
+        self.segments = collections.OrderedDict(
+            (segment.name, segment) for segment in segments)
         self.metadata = metadata
-        self.label_locations_set = False
 
     def get_segments(self):
         '''Returns the segments in the program.'''
@@ -38,38 +38,49 @@ class Program:
         '''Returns the program metadata.'''
         return self.metadata
 
-    def get_label_location(self, label_name, segment_name=None):
+    def get_label_location(self, label, segment=None):
         '''
         Returns the memory location of a label. Can only be used during/after calling render, for
         example in the render method of program components such as references.
         '''
-        try:
-            return self.collated_labels[segment_name][label_name].absolute_location
-        except KeyError:
-            raise ElfhexError(f'Label [{label_name}] not defined.')
+        if segment:
+            if segment in self.segments and label in self.segments[segment].get_labels():
+                return self.segments[segment].get_labels()[label].absolute_location
+            else:
+                raise ElfhexError(f'Label [{segment}:{label}] not defined.')
+        else:
+            for segment in self.segments.values():
+                if label in segment.get_labels():
+                    return segment.get_labels()[label].absolute_location
+            raise ElfhexError(
+                f'Label [{label}] not found in any segment.')
 
     def prepend_header_segment(self, header):
         '''Adds a new header segment at the start with the specified content.'''
         segment = Segment('__header__', {}, header)
-        self.segments.insert(0, (segment.name, segment))
+        new_segments = collections.OrderedDict()
+        new_segments[segment.name] = segment
+        for key, value in self.segments.items():
+            new_segments[key] = value
+        self.segments = new_segments
 
     def prepend_header_to_first_segment(self, header):
         '''Prepends the given header content to the first segment.'''
-        _, target = self.segments[0]
+        target = list(self.segments.values())[0]
         target.prepend_content(header)
 
     def render(self, memory_start):
         '''Returns the binary representation of the program.'''
         self._set_label_locations(memory_start)
-        return b''.join(segment.render(self) for _, segment in self.segments)
+        return b''.join(segment.render(self) for segment in self.segments.values())
 
     def _set_label_locations(self, memory_start):
-        self.label_locations_set = True
-        self.memory_start = memory_start
+        for segment in self.segments.values():
+            segment.process_labels(self)
         location_in_file = 0
         location_in_memory = memory_start + \
             self._shift_to_align(0, self.metadata.align)
-        for _, segment in self.segments:
+        for segment in self.segments.values():
             # ensures segment is properly aligned in memory
             position_shift = location_in_file % segment.get_align(
                 self.metadata.align)
@@ -83,14 +94,6 @@ class Program:
             location_in_file += segment.get_file_size()
             location_in_memory += self._shift_to_align(
                 segment.get_size(), self.metadata.align)
-        self._collate_labels()
-
-    def _collate_labels(self):
-        self.collated_labels = collections.defaultdict(dict)
-        for segment_name, segment in self.segments:
-            for label_name, label in segment.labels.items():
-                self.collated_labels[segment_name][label_name] = label
-                self.collated_labels[None][label_name] = label
 
     def _shift_to_align(self, n, alignment):
         return math.ceil(n / alignment) * alignment
@@ -110,7 +113,7 @@ class Segment:
         self.name = name
         self.args = args
         self.auto_labels = auto_labels
-        self._process_labels(contents)
+        self.contents = contents
 
     def get_name(self):
         '''Returns the name of the segment.'''
@@ -146,28 +149,32 @@ class Segment:
         self.location_in_memory = location_in_memory
 
     def prepend_content(self, content):
-        self._process_labels(content + self.contents)
+        self.contents = content + self.contents
 
     def render(self, program):
         '''Returns the binary representation of the segment.'''
-        return b''.join(element.render(program, self) for element in self.contents)
+        return b''.join(
+            self._call_with_args(element, 'render', program)
+            for element in self.contents)
 
     def get_labels(self):
+        '''Returns the labels in the segment.'''
         return self.labels
 
-    def _process_labels(self, contents):
-        self.contents = []
+    def process_labels(self, program):
+        '''
+        Determines the location of elements in the segment. Called during the rendering process.
+        '''
         self.labels = {}
         self.size = 0
-        for element in contents:
+        for element in self.contents:
             if type(element) == Label:
                 self._register_label(element)
             if type(element) == RelativeReference:
                 element.set_location_in_segment(self.size)
             elif type(element) == AbsoluteReference:
                 element.set_own_segment(self.name)
-            self.size += element.get_size()
-            self.contents.append(element)
+            self.size += self._call_with_args(element, 'get_size', program)
         self.file_size = self.size
         for label in self.auto_labels:
             self._register_label(label)
@@ -180,9 +187,23 @@ class Segment:
         self.labels[label.name] = label
         label.set_location_in_segment(self.size)
 
+    def _call_with_args(self, element, method_name, program):
+        '''
+        Calls the given method, optionally with the program and segment arguments set if they
+        exist as parameters on the method.
+        '''
+        method = getattr(element, method_name)
+        params = inspect.signature(method).parameters
+        args = {}
+        if 'program' in params:
+            args['program'] = program
+        if 'segment' in params:
+            args['segment'] = self
+        return method(**args)
+
 
 class Label:
-    '''A label, which refers to a location.'''
+    '''A label, which refers to a location in memory.'''
 
     def __init__(self, name):
         '''Creates a new label with the given name.'''
@@ -213,7 +234,7 @@ class Label:
         '''Returns the size of the label (0 bytes).'''
         return 0
 
-    def render(self, program, segment):
+    def render(self):
         return b''
 
 
@@ -251,7 +272,7 @@ class AbsoluteReference:
         '''Returns the size of the reference (4 bytes).'''
         return 4
 
-    def render(self, program, segment):
+    def render(self, program):
         '''
         Returns the binary representation of the absolute reference.
         '''
@@ -303,7 +324,7 @@ class Byte:
         '''Returns the size of a byte (one byte).'''
         return 1
 
-    def render(self, program, segment):
+    def render(self):
         '''Returns the binary representation of the byte.'''
         return bytearray(struct.pack('B', self.byte))
 
@@ -324,7 +345,7 @@ class Number:
         '''Returns the width (padded) of the number.'''
         return self.width
 
-    def render(self, program, segment):
+    def render(self, program):
         '''
         Returns the binary representation of the number. If the number is too large for the width,
         an ElfhexError is raised.
@@ -350,6 +371,6 @@ class String:
         '''Returns the length of the string.'''
         return len(self.string)
 
-    def render(self, program, segment):
+    def render(self):
         '''Returns the encoded value of the string.'''
         return self.string

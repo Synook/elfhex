@@ -31,7 +31,7 @@ class ElfHeader:
     def get_size(self):
         return FILE_HEADER_SIZE
 
-    def render(self, program, segment):
+    def render(self, program):
         e_ident = b'\x7fELF' + struct.pack(
             '=BBBBB',
             1,  # ei_class
@@ -54,36 +54,30 @@ class ElfHeader:
             len(program.get_segments()),  # e_phnum
             0,  # e_shentsize
             0,  # e_shnum
-            0,  # e_shstrndx
-        )
+            0)  # e_shstrndx
 
 
 class ProgramHeader:
     '''A program header entry in an ELF file.'''
 
-    def __init__(self, segment_index):
-        self.segment_index = segment_index
+    def get_size(self, program):
+        return PROGRAM_HEADER_ENTRY_SIZE * len(program.get_segments())
 
-    def get_size(self):
-        return PROGRAM_HEADER_ENTRY_SIZE
-
-    def render(self, program, segment):
-        _, segment = program.get_segments()[self.segment_index]
-
-        return struct.pack(
-            f'{program.get_metadata().endianness}IIIIIIII',
-            1,  # p_type = PT_LOAD
-            segment.location_in_file,  # p_offset
-            segment.location_in_memory,  # p_vaddr
-            segment.location_in_memory,  # p_paddr
-            segment.get_file_size(),  # p_filesz
-            segment.get_size(),  # p_memsz
-            segment.get_flags(),  # p_flags
-            segment.get_align(program.get_metadata().align),  # p_align
-        )
+    def render(self, program):
+        return b''.join(
+            struct.pack(
+                f'{program.get_metadata().endianness}IIIIIIII',
+                1,  # p_type = PT_LOAD
+                segment.location_in_file,  # p_offset
+                segment.location_in_memory,  # p_vaddr
+                segment.location_in_memory,  # p_paddr
+                segment.get_file_size(),  # p_filesz
+                segment.get_size(),  # p_memsz
+                segment.get_flags(),  # p_flags
+                segment.get_align(program.get_metadata().align))  # p_align
+            for segment in program.get_segments().values())
 
 
-def get_header(segment_count, entry_label):
+def get_header(entry_label):
     '''Returns the ELF header for the given entry_label and number of segments.'''
-    return [ElfHeader(entry_label)] + \
-        [ProgramHeader(i) for i in range(0, segment_count)]
+    return [ElfHeader(entry_label), ProgramHeader()]
