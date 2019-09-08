@@ -14,8 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+'''
+This module creates ELF headers for use with ELFHex Program instances. The headers generated
+here are program-independent; their exact form is determined during program rendering.
+'''
+
 import struct
-from . import program
 
 # always the case for ELF files
 FILE_HEADER_SIZE = 52
@@ -26,12 +30,19 @@ class ElfHeader:
     '''The file header of an ELF file.'''
 
     def __init__(self, entry_label):
+        '''
+        Creates a new ELF file header, where the entry address points to the first location of the
+        given label in any program segment.
+        '''
         self.entry_label = entry_label
 
-    def get_size(self):
+    @staticmethod
+    def get_size():
+        '''Returns the size of the file header.'''
         return FILE_HEADER_SIZE
 
     def render(self, program):
+        '''Returns the binary representation of the file header.'''
         e_ident = b'\x7fELF' + struct.pack(
             '=BBBBB',
             1,  # ei_class
@@ -57,13 +68,20 @@ class ElfHeader:
             0)  # e_shstrndx
 
 
-class ProgramHeader:
-    '''A program header entry in an ELF file.'''
+class ProgramHeaders:
+    '''The program headers array in an ELF file.'''
 
-    def get_size(self, program):
+    @staticmethod
+    def get_size(program):
+        '''
+        Returns the size of the program headers array based on the number of segments in the
+        program.
+        '''
         return PROGRAM_HEADER_ENTRY_SIZE * len(program.get_segments())
 
-    def render(self, program):
+    @staticmethod
+    def render(program):
+        '''Returns the binary representation of the program headers array.'''
         return b''.join(
             struct.pack(
                 f'{program.get_metadata().endianness}IIIIIIII',
@@ -79,5 +97,5 @@ class ProgramHeader:
 
 
 def get_header(entry_label):
-    '''Returns the ELF header for the given entry_label and number of segments.'''
-    return [ElfHeader(entry_label), ProgramHeader()]
+    '''Returns an ELF header where the entry address will point to the given entry label.'''
+    return [ElfHeader(entry_label), ProgramHeaders()]

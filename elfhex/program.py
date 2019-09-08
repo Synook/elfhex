@@ -14,11 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+'''
+This module contains the main components of an ELFHex program. These are used to constuct a Program
+instance when the source file's syntax tree is processed in the Transformer. The program instance
+consists of Segments, which then contain other elements. All children of segments should support
+the get_size() and render() methods.
+'''
+
 import collections
 import struct
 import math
 import inspect
-from .util import WIDTH_SYMBOLS, ElfhexError
+from . import util
 
 
 class Program:
@@ -46,14 +53,12 @@ class Program:
         if segment:
             if segment in self.segments and label in self.segments[segment].get_labels():
                 return self.segments[segment].get_labels()[label].absolute_location
-            else:
-                raise ElfhexError(f'Label [{segment}:{label}] not defined.')
-        else:
-            for segment in self.segments.values():
-                if label in segment.get_labels():
-                    return segment.get_labels()[label].absolute_location
-            raise ElfhexError(
-                f'Label [{label}] not found in any segment.')
+            raise util.ElfhexError(f'Label [{segment}:{label}] not defined.')
+        for program_segment in self.segments.values():
+            if label in program_segment.get_labels():
+                return program_segment.get_labels()[label].absolute_location
+        raise util.ElfhexError(
+            f'Label [{label}] not found in any segment.')
 
     def prepend_header_segment(self, header):
         '''Adds a new header segment at the start with the specified content.'''
@@ -95,8 +100,9 @@ class Program:
             location_in_memory += self._shift_to_align(
                 segment.get_size(), self.metadata.align)
 
-    def _shift_to_align(self, n, alignment):
-        return math.ceil(n / alignment) * alignment
+    @staticmethod
+    def _shift_to_align(size, alignment):
+        return math.ceil(size / alignment) * alignment
 
 
 Metadata = collections.namedtuple(
@@ -108,12 +114,17 @@ Metadata = collections.namedtuple(
 class Segment:
     '''A segment in an ELFHex program.'''
 
-    def __init__(self, name, args, contents, auto_labels=[]):
+    def __init__(self, name, args, contents, auto_labels=()):
         '''Creates a new segment with the given values.'''
         self.name = name
         self.args = args
         self.auto_labels = auto_labels
         self.contents = contents
+        self.labels = {}
+        self.location_in_file = None
+        self.location_in_memory = None
+        self.size = None
+        self.file_size = None
 
     def get_name(self):
         '''Returns the name of the segment.'''
@@ -122,12 +133,12 @@ class Segment:
     def get_flags(self):
         '''Returns the flags for the segment.'''
         flags = 0
-        for c in self.args.get('segment_flags', 'r'):
-            if c == 'r':
+        for char in self.args.get('segment_flags', 'r'):
+            if char == 'r':
                 flags |= 0x4
-            elif c == 'w':
+            elif char == 'w':
                 flags |= 0x2
-            elif c == 'x':
+            elif char == 'x':
                 flags |= 0x1
         return flags
 
@@ -149,6 +160,7 @@ class Segment:
         self.location_in_memory = location_in_memory
 
     def prepend_content(self, content):
+        '''Adds the provided content to the start of the segment.'''
         self.contents = content + self.contents
 
     def render(self, program):
@@ -168,11 +180,11 @@ class Segment:
         self.labels = {}
         self.size = 0
         for element in self.contents:
-            if type(element) == Label:
+            if isinstance(element, Label):
                 self._register_label(element)
-            if type(element) == RelativeReference:
+            if isinstance(element, RelativeReference):
                 element.set_location_in_segment(self.size)
-            elif type(element) == AbsoluteReference:
+            if isinstance(element, AbsoluteReference):
                 element.set_own_segment(self.name)
             self.size += self._call_with_args(element, 'get_size', program)
         self.file_size = self.size
@@ -182,7 +194,7 @@ class Segment:
 
     def _register_label(self, label):
         if label.name in self.labels:
-            raise ElfhexError(
+            raise util.ElfhexError(
                 f'Label {label.name} defined more than once.')
         self.labels[label.name] = label
         label.set_location_in_segment(self.size)
@@ -230,11 +242,17 @@ class Label:
         '''Returns the absolute location in memory of the label.'''
         return self.absolute_location
 
-    def get_size(self):
+    @staticmethod
+    def get_size():
         '''Returns the size of the label (0 bytes).'''
         return 0
 
-    def render(self):
+    @staticmethod
+    def render():
+        '''
+        Returns the binary representation of the label (an empty byte-string; labels themselves do
+        not appear in the output).
+        '''
         return b''
 
 
@@ -268,7 +286,8 @@ class AbsoluteReference:
         if self.segment is None:
             self.segment = segment
 
-    def get_size(self):
+    @staticmethod
+    def get_size():
         '''Returns the size of the reference (4 bytes).'''
         return 4
 
@@ -309,7 +328,7 @@ class RelativeReference:
         difference = segment.get_labels()[self.label].get_location_in_segment() - \
             self.location_in_segment - self.get_size()
         return struct.pack(
-            f'{program.get_metadata().endianness}{WIDTH_SYMBOLS[self.get_size()]}',
+            f'{program.get_metadata().endianness}{util.WIDTH_SYMBOLS[self.get_size()]}',
             difference)
 
 
@@ -320,7 +339,8 @@ class Byte:
         '''Creates a new byte.'''
         self.byte = byte
 
-    def get_size(self):
+    @staticmethod
+    def get_size():
         '''Returns the size of a byte (one byte).'''
         return 1
 
@@ -350,14 +370,14 @@ class Number:
         Returns the binary representation of the number. If the number is too large for the width,
         an ElfhexError is raised.
         '''
-        width_symbol = WIDTH_SYMBOLS[int(self.width)]
+        width_symbol = util.WIDTH_SYMBOLS[int(self.width)]
         if self.signed:
             width_symbol = width_symbol.upper()
         try:
             return struct.pack(
                 f'{program.get_metadata().endianness}{width_symbol}', self.number)
         except struct.error:
-            raise ElfhexError('Number too big for specified width.')
+            raise util.ElfhexError('Number too big for specified width.')
 
 
 class String:

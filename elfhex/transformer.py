@@ -14,10 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import struct
 import lark
-from . import program
-from .util import WIDTH_SYMBOLS, defaults, ElfhexError
+from . import program, util
 
 
 class Transformer(lark.Transformer):
@@ -62,7 +60,7 @@ class Transformer(lark.Transformer):
         return program.Label(*items)
 
     def abs(self, items):
-        (segment, label), offset = defaults(items, 2, 0)
+        (segment, label), offset = util.defaults(items, 2, 0)
         return program.AbsoluteReference(label, int(offset), segment)
 
     def abs_label(self, items):
@@ -74,7 +72,7 @@ class Transformer(lark.Transformer):
             return (None, str(label))
 
     def rel(self, items):
-        name, width = defaults(items, 2, 1)
+        name, width = util.defaults(items, 2, 1)
         return program.RelativeReference(str(name), int(width))
 
     def hex(self, hexdigits):
@@ -109,5 +107,5 @@ class Transformer(lark.Transformer):
         return program.String(string[1:-1])
 
     def fragment_var(self, items):
-        raise ElfhexError(
+        raise util.ElfhexError(
             f'Fragment variable reference ${items[0]} found in segment.')

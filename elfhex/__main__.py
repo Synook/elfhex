@@ -14,10 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+'''Assemble an ELFHex source file into an ELF executable binary.'''
+
 import sys
-import os
 import argparse
-from lark import Lark
 from lark.exceptions import LarkError, VisitError
 import elfhex
 
@@ -49,7 +50,7 @@ def _parse_args(argv=None):
         help='Do not output the ELF header.')
     argparser.add_argument(
         '-H', '--header-segment', action='store_true',
-        help='Place the header in its own segment.')
+        help='Place the ELF header in its own segment.')
 
     return argparser.parse_args(argv) if argv else argparser.parse_args()
 
@@ -64,8 +65,7 @@ def assemble(argv=None):
     args = _parse_args(argv)
 
     # Preprocess source (resolves includes and fragment references).
-    preprocessed = \
-        elfhex.Preprocessor(elfhex.FileLoader(args.include_path)) \
+    preprocessed = elfhex.Preprocessor(elfhex.FileLoader(args.include_path)) \
         .preprocess(args.input_path, args.max_fragment_depth)
 
     # Transform the syntax into a Program instance.
@@ -84,22 +84,26 @@ def assemble(argv=None):
 
     # Output the resulting blob.
     open(args.output_path, 'wb').write(output)
-    print(f"Assembled. Total size: {len(output)} bytes.")
+    print(f'Assembled. Total size: {len(output)} bytes.')
 
 
-def _report_error(e):  # pragma: no cover
-    print(e, file=sys.stdout)
+def _report_error(ex):  # pragma: no cover
+    print(ex, file=sys.stdout)
     print('Errors were encountered while processing input.', file=sys.stdout)
     exit(1)
 
 
 def main():  # pragma: no cover
+    '''
+    Reads arguments from the command line and assembles an ELFHex source file into an executable
+    binary.
+    '''
     try:
         assemble()
-    except VisitError as e:
-        _report_error(e.orig_exc)
-    except (LarkError, elfhex.ElfhexError) as e:
-        _report_error(e)
+    except VisitError as ex:
+        _report_error(ex.orig_exc)
+    except (LarkError, elfhex.ElfhexError) as ex:
+        _report_error(ex)
 
 
 if __name__ == '__main__':  # pragma: no cover

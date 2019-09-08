@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+'''The ELFHex "assembler" and its library.'''
+
 from .transformer import Transformer
 from .preprocessor import Preprocessor
 from .file_loader import FileLoader

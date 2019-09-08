@@ -14,10 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
+'''
+This module contains the Preprocessor class, which preprocesses ELF input files, resolving includes
+and fragment references.
+'''
+
 import copy
-from lark import Lark, Visitor, Token, Tree
-from .util import ElfhexError, defaults, get_parser
+import lark
+from . import util
 
 
 class Preprocessor:
@@ -31,7 +35,7 @@ class Preprocessor:
         containing the absolute or canonical path of the file. A standard file loader which
         searches the local file system is elfhex.FileLoader.
         '''
-        self.parser = get_parser()
+        self.parser = util.get_parser()
         self.file_loader = file_loader
 
     def preprocess(self, path, max_fragment_depth=16):
@@ -54,7 +58,7 @@ class Preprocessor:
             if not self._replace_fragments(canonical, fragments):
                 break
         if self._replace_fragments(canonical, fragments):
-            raise ElfhexError("Max recursion depth for fragments reached.")
+            raise util.ElfhexError("Max recursion depth for fragments reached.")
         return canonical
 
     def _process_includes(self, path, seen, fragments_only=False):
@@ -76,7 +80,8 @@ class Preprocessor:
                 include, seen, fragments_only or child_fragments_only))
         return results
 
-    def _gather_fragments(self, parsed):
+    @staticmethod
+    def _gather_fragments(parsed):
         fragments = {}
         for program, _ in parsed:
             for fragment in program.find_data('fragment'):
@@ -86,21 +91,22 @@ class Preprocessor:
                     'contents': contents}
         return fragments
 
-    def _merge_metadata(self, metadata, program):
-        if not metadata != None:
+    @staticmethod
+    def _merge_metadata(metadata, program):
+        if metadata is None:
             metadata, = program.find_data('metadata')
         else:
             new_metadata, = program.find_data('metadata')
             if metadata.children[0:2] != new_metadata.children[0:2]:
-                raise ElfhexError("Incompatible metadata.")
-            metadata.children[2] = Token('INT', str(
+                raise util.ElfhexError("Incompatible metadata.")
+            metadata.children[2] = lark.Token('INT', str(
                 max(int(metadata.children[2]), int(new_metadata.children[2]))))
         return metadata
 
     def _merge(self, parsed):
         canonical, _ = parsed[0]
         # Reset children (we don't want fragments in the output).
-        merged = Tree(canonical.data, [])
+        merged = lark.Tree(canonical.data, [])
         segments = {}
         metadata = None
         for program, fragments_only in parsed:
@@ -135,28 +141,27 @@ class Preprocessor:
                 label_name = str(element.children[0])
                 if alias:
                     element = copy.deepcopy(element)
-                    element.children[0] = Token(
+                    element.children[0] = lark.Token(
                         "NAME", f"{alias}.{label_name}")
                 label_name = str(element.children[0])
                 if label_name[0:2] == '__':
                     element = copy.deepcopy(element)
-                    element.children[0] = Token(
+                    element.children[0] = lark.Token(
                         "NAME", f"__{ref_num}{label_name}")
             buffer.append(element)
         return buffer
 
     def _process_fragment_ref(self, fragment_info, fragments, ref_num, seen):
-        start, name, params, alias = defaults(fragment_info, 4, None)
+        start, name, params, alias = util.defaults(fragment_info, 4, None)
         if '!' in start.children:
             if name in seen:
                 return []
-            else:
-                seen.add(name)
-        if not name in fragments:
-            raise ElfhexError(f'Non-existent fragment {name} referenced.')
+            seen.add(name)
+        if name not in fragments:
+            raise util.ElfhexError(f'Non-existent fragment {name} referenced.')
         fragment = fragments[name]
         if len(fragment['args']) != len(params.children):
-            raise ElfhexError(
+            raise util.ElfhexError(
                 f'Wrong number of arguments in reference to fragment "{name}".')
         args = dict(zip(
             fragment['args'],

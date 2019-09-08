@@ -14,8 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+'''This module contains the FileLoader class, which reads files from the filesystem.'''
+
 import os
-from .util import ElfhexError
+from . import util
 
 
 class FileLoader:
@@ -40,4 +42,4 @@ class FileLoader:
                 return contents, full_path
             except FileNotFoundError:
                 pass
-        raise ElfhexError(f"Couldn't find {path} in {self.search_dirs}.")
+        raise util.ElfhexError(f"Couldn't find {path} in {self.search_dirs}.")

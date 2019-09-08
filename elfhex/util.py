@@ -14,9 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import collections
+'''This module contains utility functions and classes.'''
+
 import os
-from lark import Lark
+import lark
 
 WIDTH_SYMBOLS = {
     1: 'b',
@@ -28,23 +29,22 @@ WIDTH_SYMBOLS = {
 
 class ElfhexError(Exception):
     '''An error encountered while assembling an ELFHex program.'''
-    pass
 
 
 def get_parser():
     '''Returns a parser for the ELFHex input language.'''
     grammar_path = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), 'elfhex.lark')
-    return Lark(
+    return lark.Lark(
         open(grammar_path).read(), parser='lalr', start='program')
 
 
-def defaults(items, expected, *defaults):
+def defaults(items, expected, *default_values):
     '''Pads the items list up to the expected length with the provided defaults.'''
     if len(items) == expected:
         return items
-    if len(items) + len(defaults) < expected:
+    if len(items) + len(default_values) < expected:
         raise Exception('Too few items, even with defaults.')
     items = list(items)
-    items.extend(defaults[len(items) - expected - 1:])
+    items.extend(default_values[len(items) - expected - 1:])
     return items
