@@ -14,7 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''The ELFHex "assembler" and its library.'''
+# flake8: noqa
+
+"""The ELFHex "assembler" and its library."""
 
 from .transformer import Transformer
 from .preprocessor import Preprocessor
@@ -22,4 +24,4 @@ from .file_loader import FileLoader
 from .util import ElfhexError, get_parser
 from . import elf
 
-name = 'elfhex'
+name = "elfhex"

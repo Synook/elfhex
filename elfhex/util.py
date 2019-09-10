@@ -14,37 +14,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''This module contains utility functions and classes.'''
+"""This module contains utility functions and classes."""
 
 import os
 import lark
 
-WIDTH_SYMBOLS = {
-    1: 'b',
-    2: 'h',
-    4: 'i',
-    8: 'q'
-}
+WIDTH_SYMBOLS = {1: "b", 2: "h", 4: "i", 8: "q"}
 
 
 class ElfhexError(Exception):
-    '''An error encountered while assembling an ELFHex program.'''
+    """An error encountered while assembling an ELFHex program."""
 
 
 def get_parser():
-    '''Returns a parser for the ELFHex input language.'''
-    grammar_path = os.path.join(os.path.dirname(
-        os.path.abspath(__file__)), 'elfhex.lark')
-    return lark.Lark(
-        open(grammar_path).read(), parser='lalr', start='program')
+    """Returns a parser for the ELFHex input language."""
+    grammar_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "elfhex.lark"
+    )
+    return lark.Lark(open(grammar_path).read(), parser="lalr", start="program")
 
 
 def defaults(items, expected, *default_values):
-    '''Pads the items list up to the expected length with the provided defaults.'''
+    """Pads the items list up to the expected length with the provided defaults."""
     if len(items) == expected:
         return items
     if len(items) + len(default_values) < expected:
-        raise Exception('Too few items, even with defaults.')
+        raise Exception("Too few items, even with defaults.")
     items = list(items)
-    items.extend(default_values[len(items) - expected - 1:])
+    items.extend(default_values[len(items) - expected - 1 :])
     return items

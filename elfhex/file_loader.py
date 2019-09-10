@@ -14,27 +14,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''This module contains the FileLoader class, which reads files from the filesystem.'''
+"""This module contains the FileLoader class, which reads files from the filesystem."""
 
 import os
 from . import util
 
 
 class FileLoader:
-    '''
-    A dictionary-like object that will search the provided search_dirs for the
+    """A dictionary-like object that will search the provided search_dirs for the
     provided filename, returning the (contents, absolute_path) if found.
-    '''
+    """
 
     def __init__(self, search_dirs):
-        '''Creates a new file loader that will search in the provided directories.'''
+        """Creates a new file loader that will search in the provided directories."""
         self.search_dirs = search_dirs
 
     def __getitem__(self, path):
-        '''
-        Returns the contents of the file at the path, along with the absolute location of the file.
-        Returns an ElfhexError if the file can't be found after searching all directories.
-        '''
+        """
+        Returns the contents of the file at the path, along with the absolute location
+        of the file. Returns an ElfhexError if the file can't be found after searching
+        all directories.
+        """
         for directory in self.search_dirs:
             try:
                 full_path = os.path.abspath(os.path.join(directory, path))

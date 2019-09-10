@@ -18,7 +18,9 @@ This installs a command-line tool named `elfhex`. View its usage with `elfhex -h
 
 ### Development
 
-This project uses Python 3.6 and `pipenv`. In order to install dependencies, run `pipenv install --dev`. The program can then be run using `python -m elfhex`. To execute the tests, run `pytest`. 
+This project uses Python 3.6 and `pipenv`. In order to install dependencies, run `pipenv install --dev`. The program can then be run using `python -m elfhex`. To execute the tests, run `pytest`.
+
+There are some pre-commit hooks that check for certain formatting and other issues, which can be installed using `pre-commit install`. Run [`black .`](https://black.readthedocs.io/en/stable/) to auto-format changes, and `flake8` to check for PEP 8 violations.
 
 To build a package, first generate `requirements.txt`, and then use `setuptools` to build the distributable artifacts.
 
@@ -27,13 +29,13 @@ pipenv run pipenv_to_requirements
 pipenv run python setup.py sdist bdist_wheel
 ```
 
-### As a library
+### As a module
 
-The ELFHex module can also be imported as a library. The command-line tool's usage of it can be seen in `__main__.py`. In general, there are separate components that deal with preprocessing, transformation, rendering, and the ELF header.
+The ELFHex module can also be imported. The command-line tool's usage of it can be seen in `__main__.py`. In general, there are separate components that deal with preprocessing, transformation, rendering, and the ELF header.
 
 ```python
 import elfhex
-file_loader = elfhex.FileLoader(include_path)
+file_loader = elfhex.FileLoader(include_paths)
 preprocessor = elfhex.Preprocessor(file_loader)
 preprocessed = preprocessor.preprocess(input_path, max_fragment_depth)
 program = elfhex.Transformer().transform(preprocessed)

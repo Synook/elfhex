@@ -14,4 +14,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MAIN_FILE = 'test_input.eh'
+MAIN_FILE = "test_input.eh"

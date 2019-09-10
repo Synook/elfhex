@@ -19,18 +19,19 @@ from . import program, util
 
 
 class Transformer(lark.Transformer):
-    '''
-    Transforms a parsed ELFHex syntax tree into an elfhex.program.Program. The syntax tree must
-    only contain the program declaration and segments: use elfhex.Preprocessor to resolve includes
-    and fragment references.
-    '''
+    """Transforms a parsed ELFHex syntax tree into an elfhex.program.Program. The syntax
+    tree must only contain the program declaration and segments: use elfhex.Preprocessor
+    to resolve includes and fragment references.
+    """
 
     def program(self, items):
         return program.Program(items[0], items[1:])
 
     def metadata(self, items):
         machine, endianness, align = items
-        return program.Metadata(machine=int(machine), endianness=endianness, align=int(align))
+        return program.Metadata(
+            machine=int(machine), endianness=endianness, align=int(align)
+        )
 
     def segment(self, items):
         return program.Segment(*items)
@@ -49,7 +50,7 @@ class Transformer(lark.Transformer):
         args = {}
         for item in items:
             value, = item.children
-            if item.data == 'segment_flags':
+            if item.data == "segment_flags":
                 value = str(value)
             else:
                 value = int(value)
@@ -81,7 +82,9 @@ class Transformer(lark.Transformer):
     def number(self, items):
         sign, number_value = items
         number, base, width = self._parse_number_value(number_value)
-        return program.Number(int(number, base) * (-1 if sign == '-' else 1), width, sign != '=')
+        return program.Number(
+            int(number, base) * (-1 if sign == "-" else 1), width, sign != "="
+        )
 
     def _parse_number_value(self, value):
         try:
@@ -90,9 +93,9 @@ class Transformer(lark.Transformer):
         except ValueError:
             width = 1
             num, base = value[:-1], value[-1]
-        if base == 'b':
+        if base == "b":
             base = 2
-        elif base == 'h':
+        elif base == "h":
             base = 16
         else:
             base = 10
@@ -108,4 +111,5 @@ class Transformer(lark.Transformer):
 
     def fragment_var(self, items):
         raise util.ElfhexError(
-            f'Fragment variable reference ${items[0]} found in segment.')
+            f"Fragment variable reference ${items[0]} found in segment."
+        )

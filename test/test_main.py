@@ -26,31 +26,30 @@ import elfhex.__main__ as main
 
 @pytest.fixture
 def include_path():
-    return os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), 'data')
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
 
 def _create_output_path():
-    return os.path.join(tempfile.gettempdir(), f'elfhex_test_output_{uuid.uuid1().hex}')
+    return os.path.join(tempfile.gettempdir(), f"elfhex_test_output_{uuid.uuid1().hex}")
 
 
 def _assert_execution_output(binary_path, output):
-    if platform.system() == 'Linux':
+    if platform.system() == "Linux":
         os.chmod(binary_path, stat.S_IRUSR | stat.S_IWRITE | stat.S_IXUSR)
         output = subprocess.check_output([binary_path])
-        assert output == b'aaaaa'
+        assert output == b"aaaaa"
 
 
 def test_assemble(include_path):
     output_path = _create_output_path()
 
-    main.assemble(['-i', include_path, 'test.eh', output_path])
+    main.assemble(["-i", include_path, "test.eh", output_path])
 
-    content = open(output_path, 'rb').read()
-    assert content[0:4] == b'\x7fELF'
+    content = open(output_path, "rb").read()
+    assert content[0:4] == b"\x7fELF"
 
     # if we are on Linux, we try to actually run our program.
-    _assert_execution_output(output_path, b'aaaaa')
+    _assert_execution_output(output_path, b"aaaaa")
 
     os.remove(output_path)
 
@@ -58,14 +57,13 @@ def test_assemble(include_path):
 def test_assemble_header_segment(include_path):
     output_path = _create_output_path()
 
-    main.assemble(
-        ['--header-segment', '-i', include_path, 'test.eh', output_path])
+    main.assemble(["--header-segment", "-i", include_path, "test.eh", output_path])
 
-    content = open(output_path, 'rb').read()
-    assert content[0:4] == b'\x7fELF'
+    content = open(output_path, "rb").read()
+    assert content[0:4] == b"\x7fELF"
 
     # if we are on Linux, we try to actually run our program.
-    _assert_execution_output(output_path, b'aaaaa')
+    _assert_execution_output(output_path, b"aaaaa")
 
     os.remove(output_path)
 
@@ -73,10 +71,9 @@ def test_assemble_header_segment(include_path):
 def test_assemble_no_header(include_path):
     output_path = _create_output_path()
 
-    main.assemble(
-        ['--no-header', '-i', include_path, 'noheader.eh', output_path])
+    main.assemble(["--no-header", "-i", include_path, "noheader.eh", output_path])
 
-    content = open(output_path, 'rb').read()
-    assert content == b'\x00\x01\x02\x03'
+    content = open(output_path, "rb").read()
+    assert content == b"\x00\x01\x02\x03"
 
     os.remove(output_path)
