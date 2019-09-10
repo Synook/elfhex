@@ -13,7 +13,7 @@ pytest-cov = "*"
 coverage = "*"
 pipenv-to-requirements = "*"
 flake8 = "*"
-black = "*"
+black = "==19.3b0"
 pre-commit = "*"
 
 [packages]
@@ -21,6 +21,3 @@ lark-parser = ">=0.7.4"
 
 [requires]
 python_version = "3.6"
-
-[pipenv]
-allow_prereleases = true
