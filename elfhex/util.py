@@ -19,11 +19,16 @@
 import os
 import lark
 
-WIDTH_SYMBOLS = {1: "b", 2: "h", 4: "i", 8: "q"}
+_WIDTH_SYMBOLS = {1: "b", 2: "h", 4: "i", 8: "q"}
 
 
 class ElfhexError(Exception):
     """An error encountered while assembling an ELFHex program."""
+
+
+def width_symbol(width, signed):
+    symbol = _WIDTH_SYMBOLS[width]
+    return symbol.lower() if signed else symbol.upper()
 
 
 def get_parser():

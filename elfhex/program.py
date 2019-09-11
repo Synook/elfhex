@@ -328,7 +328,8 @@ class RelativeReference:
             - self.get_size()
         )
         return struct.pack(
-            f"{program.get_metadata().endianness}{util.WIDTH_SYMBOLS[self.get_size()]}",
+            program.get_metadata().endianness
+            + util.width_symbol(self.get_size(), True),
             difference,
         )
 
@@ -369,12 +370,11 @@ class Number:
         """Returns the binary representation of the number. If the number is too large
         for the width, an ElfhexError is raised.
         """
-        width_symbol = util.WIDTH_SYMBOLS[int(self.width)]
-        if self.signed:
-            width_symbol = width_symbol.upper()
         try:
             return struct.pack(
-                f"{program.get_metadata().endianness}{width_symbol}", self.number
+                program.get_metadata().endianness
+                + util.width_symbol(self.width, self.signed),
+                self.number,
             )
         except struct.error:
             raise util.ElfhexError("Number too big for specified width.")
