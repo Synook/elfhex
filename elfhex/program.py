@@ -25,7 +25,7 @@ methods.
 import collections
 import struct
 import math
-import inspect
+import importlib
 from . import util
 
 
@@ -122,10 +122,10 @@ class Segment:
         self.auto_labels = auto_labels
         self.contents = contents
         self.labels = {}
-        self.location_in_file = None
-        self.location_in_memory = None
-        self.size = None
-        self.file_size = None
+        self.location_in_file = 0
+        self.location_in_memory = 0
+        self.size = 0
+        self.file_size = 0
 
     def get_name(self):
         """Returns the name of the segment."""
@@ -167,7 +167,7 @@ class Segment:
     def render(self, program):
         """Returns the binary representation of the segment."""
         return b"".join(
-            self._call_with_args(element, "render", program)
+            util.call_with_args(element, "render", program, self)
             for element in self.contents
         )
 
@@ -188,7 +188,7 @@ class Segment:
                 element.set_location_in_segment(self.size)
             if isinstance(element, AbsoluteReference):
                 element.set_own_segment(self.name)
-            self.size += self._call_with_args(element, "get_size", program)
+            self.size += util.call_with_args(element, "get_size", program, self)
         self.file_size = self.size
         for label in self.auto_labels:
             self._register_label(label)
@@ -200,19 +200,6 @@ class Segment:
         self.labels[label.name] = label
         label.set_location_in_segment(self.size)
 
-    def _call_with_args(self, element, method_name, program):
-        """Calls the given method, optionally with the program and segment arguments set
-        if they exist as parameters on the method.
-        """
-        method = getattr(element, method_name)
-        params = inspect.signature(method).parameters
-        args = {}
-        if "program" in params:
-            args["program"] = program
-        if "segment" in params:
-            args["segment"] = self
-        return method(**args)
-
 
 class Label:
     """A label, which refers to a location in memory."""
@@ -220,8 +207,8 @@ class Label:
     def __init__(self, name):
         """Creates a new label with the given name."""
         self.name = name
-        self.location_in_segment = None
-        self.absolute_location = None
+        self.location_in_segment = 0
+        self.absolute_location = 0
 
     def set_location_in_segment(self, location_in_segment):
         """Sets the location of the label in the segment."""
@@ -394,3 +381,17 @@ class String:
     def render(self):
         """Returns the encoded value of the string."""
         return self.string
+
+
+class Extension:
+    def __init__(self, name, content, absolute):
+        if not absolute:
+            name = f"elfhex.extensions.{name}"
+        extension = importlib.import_module(name)
+        self.value = extension.parse(content)
+
+    def get_size(self, program, segment):
+        return util.call_with_args(self.value, "get_size", program, segment)
+
+    def render(self, program, segment):
+        return util.call_with_args(self.value, "render", program, segment)

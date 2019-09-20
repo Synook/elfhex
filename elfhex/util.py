@@ -18,6 +18,7 @@
 
 import os
 import lark
+import inspect
 
 _WIDTH_SYMBOLS = {1: "b", 2: "h", 4: "i", 8: "q"}
 
@@ -48,3 +49,17 @@ def defaults(items, expected, *default_values):
     items = list(items)
     items.extend(default_values[len(items) - expected - 1 :])
     return items
+
+
+def call_with_args(element, method_name, program, segment):
+    """Calls the given method, optionally with the program and segment arguments set
+    if they exist as parameters on the method.
+    """
+    method = getattr(element, method_name)
+    params = inspect.signature(method).parameters
+    args = {}
+    if "program" in params:
+        args["program"] = program
+    if "segment" in params:
+        args["segment"] = segment
+    return method(**args)

@@ -33,8 +33,12 @@ segment_arg: "flags" ":" /rw?x?/ -> segment_flags
 auto_labels: ("[[" auto_label* "]]")?
 auto_label: NAME ":" INT
 
-?token: HEX -> hex | number | STRING -> string | label | abs | rel | fragment_ref | fragment_var
+?token: HEX -> hex | number | STRING -> string | label | abs | rel | fragment_ref | fragment_var | extension
 
+extension: EXTENSION_TYPE NAME "{" extension_content "}"
+EXTENSION_TYPE: "::" | ":"
+!extension_content: (NOT_BRACE | (extension_content "{" extension_content "}" extension_content))?
+NOT_BRACE: /[^{}]/+
 fragment_var: "$" NAME
 
 fragment_ref: fragment_start NAME fragment_args ( "(" NAME ")" )?

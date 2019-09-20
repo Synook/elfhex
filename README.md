@@ -101,7 +101,7 @@ fragment f2(a) {
 
 In this case, `@f1(00, 11)` would result in `11 ff 00 ee 00 dd ee ee`.
 
-### Name collision prevention 
+### Name collision prevention
 
 Since the same fragment can be referenced multiple times, labels in fragments may end up being defined multiple times. To avoid this, fragments can define "local" labels and references, which are prefixed with `__` (e.g.`[__only_use_in_fragment]`). These are clobbered at compile-time so that they are different for every reference to the fragment. This allows the same fragment to be referenced multiple times. If a fragment contains a bare label but needs to be referenced more than once, the user of the fragment can also prevent name collisions by using fragment alias syntax, e.g. `@fragment_name(args)(alias)`. This will prefix all labels in that instance of the fragment with `alias.`, once again ensuring they do not collide, but also allowing them to be referenced from outside the fragment.
 
@@ -145,6 +145,24 @@ The file size of this segment would be 2, but the memory size would be 14 (2 + 4
 
 Auto labels can only appear at the end of a segment, so that they are not assigned over segment content. When segments are merged during the file inclusion process, the auto label lists are also concatenated to each other.
 
+### Extensions
+
+Since the ELFHex language itself is quite basic, extensions can be used to enhance the functionality of the system. Extensions are invoked using:
+
+```
+:extension_name { extension_content }
+```
+
+At this point, the `extension_content` is entirely up to the extension named `extension_name` to parse and convert into bytes, which are then placed in the final output.
+
+Extensions are defined using Python modules. If a single colon (`:`) is used at the start, then `elfhex.extensions.extension_name` is imported, while if a double colon (`::`) is used then `extension_name` is imported instead. For example, the following code would invoke the [`x86.args`](elfhex/extensions/x86/args.py) extension:
+
+```
+:x86.args { ecx, [ebx + esi * 8 - 4] }
+```
+
+For more information on extension structure, see the [extension development documentation](elfhex/extensions/README.md).
+
 ### Comments
 
 Comments can be included in the code, prefixed by `#`. Any characters after this and before the end of the line will be ignored.
@@ -175,7 +193,7 @@ segment text(flags: rx) {
   @syscall3(=4d4, =1d4, <<strings:hello>>, =13d4)
 
   # if ++counter <= 5 goto loop
-  ff =00000101b <<data:counter>>
+  ff :x86.args{ 0, [dword ptr data:counter] }
   81 =00111101b <<data:counter>> =5d4
   72 <_start>
 
@@ -192,6 +210,7 @@ segment strings(flags: r) {
 ```
 
 other.eh:
+
 ```
 program 3 < 4096
 

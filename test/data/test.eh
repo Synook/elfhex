@@ -12,7 +12,7 @@ segment text(flags: rx) {
     ba =1d4
     @include_syscall(=4d4)
 
-    ff =00000101b <<data:counter>>
+    ff :x86.args{ 0, [dword ptr data:counter] }
     81 =00111101b <<data:counter>> =5d4
     72 <_start>
 

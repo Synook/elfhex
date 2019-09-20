@@ -34,7 +34,8 @@ class Transformer(lark.Transformer):
         )
 
     def segment(self, items):
-        return program.Segment(*items)
+        name, args, contents, auto_labels = items
+        return program.Segment(str(name), args, contents, auto_labels)
 
     def segment_content(self, items):
         return items
@@ -44,7 +45,7 @@ class Transformer(lark.Transformer):
 
     def auto_label(self, items):
         name, width = items
-        return program.AutoLabel(name, int(width))
+        return program.AutoLabel(str(name), int(width))
 
     def segment_args(self, items):
         args = {}
@@ -58,7 +59,8 @@ class Transformer(lark.Transformer):
         return args
 
     def label(self, items):
-        return program.Label(*items)
+        name, = items
+        return program.Label(str(name))
 
     def abs(self, items):
         (segment, label), offset = util.defaults(items, 2, 0)
@@ -113,3 +115,11 @@ class Transformer(lark.Transformer):
         raise util.ElfhexError(
             f"Fragment variable reference ${items[0]} found in segment."
         )
+
+    def extension(self, items):
+        extension_type, name, content = items
+        return program.Extension(str(name), content, extension_type == "::")
+
+    def extension_content(self, items):
+        content = " ".join(items)
+        return str(content)

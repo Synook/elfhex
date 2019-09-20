@@ -137,3 +137,17 @@ def test_transform_fragment_var_error(transformer, mock_program):
 
     with pytest.raises(VisitError):
         transformer.transform(parsed)
+
+
+def test_transform_extension(transformer, mock_program):
+    parsed = _parse(":test_ex {content} ::absolute {content2}")
+
+    program = transformer.transform(parsed)
+
+    assert program == Type.PROGRAM
+    mock_program.Extension.assert_has_calls(
+        [
+            mock.call("test_ex", "content", False),
+            mock.call("absolute", "content2", True),
+        ]
+    )
