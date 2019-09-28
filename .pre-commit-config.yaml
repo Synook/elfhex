@@ -8,7 +8,11 @@ repos:
   hooks:
   - id: black
     language_version: python3.6
-- repo: https://github.com/asottile/reorder_python_imports
-  rev: v1.7.0
+- repo: https://github.com/asottile/seed-isort-config
+  rev: v1.9.2
   hooks:
-  -   id: reorder-python-imports
+  - id: seed-isort-config
+- repo: https://github.com/pre-commit/mirrors-isort
+  rev: v4.3.21
+  hooks:
+  - id: isort

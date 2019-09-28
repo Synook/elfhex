@@ -13,13 +13,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Assemble an ELFHex source file into an ELF executable binary."""
+
 import argparse
 import os
 import sys
 
-from lark.exceptions import LarkError
-from lark.exceptions import VisitError
+from lark.exceptions import LarkError, VisitError
 
 import elfhex
 
