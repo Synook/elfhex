@@ -13,7 +13,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 This module contains the main components of an ELFHex program. These are used to
 constuct a Program instance when the source file's syntax tree is processed in the
@@ -21,11 +20,11 @@ Transformer. The program instance consists of Segments, which then contain other
 elements. All children of segments should support the get_size() and render()
 methods.
 """
-
 import collections
-import struct
-import math
 import importlib
+import math
+import struct
+
 from . import util
 
 

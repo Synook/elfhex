@@ -13,14 +13,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import os
-import pytest
-import uuid
-import tempfile
 import platform
 import subprocess
-import stat
+import tempfile
+import uuid
+
+import pytest
+
 import elfhex.__main__ as main
 
 
@@ -35,7 +35,6 @@ def _create_output_path():
 
 def _assert_execution_output(binary_path, output):
     if platform.system() == "Linux":
-        os.chmod(binary_path, stat.S_IRUSR | stat.S_IWRITE | stat.S_IXUSR)
         output = subprocess.check_output([binary_path])
         assert output == b"aaaaa"
 

@@ -13,12 +13,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """This module contains utility functions and classes."""
-
-import os
-import lark
 import inspect
+import os
+
+import lark
 
 _WIDTH_SYMBOLS = {1: "b", 2: "h", 4: "i", 8: "q"}
 

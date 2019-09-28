@@ -13,7 +13,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """An ELFHex extension that computes x86 argument or "ModR/M" bytes, represented in
 Intel style. Since argument order is determined by the opcode, the register always
 comes first, and can also be specified using a number, for ease when using unary
@@ -33,12 +32,12 @@ This module can also be used separately to help calcuate ModR/M bytes. For examp
     args = parse("ebx, [esi + ebp * 2]")
     print(args.render()) # also b'\x1cn'
 """
-
-import os
-import lark
 import enum
-import struct
 import math
+import os
+import struct
+
+import lark
 
 
 class X86Args:

@@ -13,13 +13,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# flake8: noqa
-"""The ELFHex "assembler" and its library."""
-from . import elf
-from .file_loader import FileLoader
-from .preprocessor import Preprocessor
-from .transformer import Transformer
-from .util import ElfhexError
-from .util import get_parser
-
-name = "elfhex"

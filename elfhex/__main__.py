@@ -13,12 +13,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Assemble an ELFHex source file into an ELF executable binary."""
-
-import sys
 import argparse
-from lark.exceptions import LarkError, VisitError
+import os
+import sys
+
+from lark.exceptions import LarkError
+from lark.exceptions import VisitError
+
 import elfhex
 
 
@@ -75,6 +77,11 @@ def _parse_args(argv=None):
     return argparser.parse_args(argv) if argv else argparser.parse_args()
 
 
+def _set_executable(path):
+    stats = os.stat(path)
+    os.chmod(path, stats.st_mode | ((stats.st_mode & 0o444) >> 2))
+
+
 def assemble(argv=None):
     """Assembles an ELFHex source program into an executable, with the provided
     arguments taken from the command line by default.
@@ -104,6 +111,7 @@ def assemble(argv=None):
 
     # Output the resulting blob.
     open(args.output_path, "wb").write(output)
+    _set_executable(args.output_path)
     print(f"Assembled. Total size: {len(output)} bytes.")
 
 
