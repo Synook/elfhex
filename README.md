@@ -167,7 +167,7 @@ For more information on extension structure, see the [extension development docu
 
 Comments can be included in the code, prefixed by `#`. Any characters after this and before the end of the line will be ignored.
 
-## Incudes
+## Includes
 
 Various source files can be composed into a single executable using the include statement: `include "filename.eh"`. This works very simply: for each segment in the included file, if the segment name matches one in the file that included it, the contents is simply appended to the bottom of that segment. Otherwise, a new segment is created. All fragments in the included file are also made available. No name changes are made during the inclusion process, so collisions are possible. Care should be taken with naming to mitigate this.
 
